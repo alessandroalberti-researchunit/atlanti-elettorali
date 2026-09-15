@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Atlanti elettorali, sezione per sezione</title>
+<meta name="description" content="Mappe navigabili delle sezioni elettorali italiane: europee 2024 in dieci citt&agrave; e comunali di Roma 2021.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Stessa tavolozza delle due mappe, cosi' l'indice e le pagine sembrano una cosa sola. */
+:root {
+  --carta:      #E4EAEC;
+  --tavola:     #F6F8F9;
+  --pannello:   #FFFFFF;
+  --inchiostro: #0D1E25;
+  --ink-2:      #3D5259;
+  --ink-3:      #6E858D;
+  --filo:       #C2D0D4;
+  --filo-tenue: #D8E1E4;
+  --accento:    #C9552B;
+  --ombra:      0 1px 2px rgba(13,30,37,.06), 0 8px 24px rgba(13,30,37,.07);
+  --r: 3px;
+  color-scheme: light dark;
+}
+:root[data-theme="dark"] {
+  --carta:      #0B171C;
+  --tavola:     #101F26;
+  --pannello:   #14262E;
+  --inchiostro: #E4EDEF;
+  --ink-2:      #A9BEC5;
+  --ink-3:      #7A939C;
+  --filo:       #2A424B;
+  --filo-tenue: #1E343C;
+  --accento:    #E8794D;
+  --ombra:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --carta:      #0B171C;
+    --tavola:     #101F26;
+    --pannello:   #14262E;
+    --inchiostro: #E4EDEF;
+    --ink-2:      #A9BEC5;
+    --ink-3:      #7A939C;
+    --filo:       #2A424B;
+    --filo-tenue: #1E343C;
+    --accento:    #E8794D;
+    --ombra:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--tavola); color: var(--inchiostro);
+  font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 15px; line-height: 1.55;
+  padding: max(28px, env(safe-area-inset-top, 0px)) 16px max(40px, env(safe-area-inset-bottom, 0px));
+}
+.foglio { max-width: 880px; margin: 0 auto; }
+.occhiello {
+  font-family: "IBM Plex Mono", monospace; font-size: 11px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 10px;
+}
+h1 {
+  font-family: "Bodoni Moda", Georgia, serif; font-weight: 400;
+  font-size: clamp(30px, 6vw, 46px); line-height: 1.1; letter-spacing: -.01em; margin: 0 0 14px;
+}
+.guida { color: var(--ink-2); max-width: 62ch; margin: 0 0 32px; }
+.carte { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+a.carta {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--pannello); border: 1px solid var(--filo); border-radius: var(--r);
+  padding: 20px; box-shadow: var(--ombra);
+}
+a.carta:hover, a.carta:focus-visible { border-color: var(--accento); outline: none; }
+a.carta:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.carta h2 {
+  font-family: "Bodoni Moda", Georgia, serif; font-weight: 400; font-size: 24px;
+  margin: 0 0 4px; letter-spacing: -.01em;
+}
+.data { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--ink-3); margin-bottom: 12px; }
+.carta p { margin: 0 0 14px; color: var(--ink-2); font-size: 14px; }
+.cifre { display: flex; flex-wrap: wrap; gap: 18px; border-top: 1px solid var(--filo-tenue); padding-top: 12px; }
+.cifra b { display: block; font-family: "IBM Plex Mono", monospace; font-size: 17px; font-weight: 500; }
+.cifra span { font-size: 11.5px; color: var(--ink-3); }
+h3 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 40px 0 10px; }
+.nota { font-size: 13px; color: var(--ink-2); max-width: 70ch; }
+.nota + .nota { margin-top: 10px; }
+a { color: var(--accento); }
+footer { margin-top: 40px; border-top: 1px solid var(--filo-tenue); padding-top: 16px; font-size: 12.5px; color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="foglio">
+
+  <div class="occhiello">Sezioni elettorali italiane</div>
+  <h1>Atlanti elettorali,<br>sezione per sezione</h1>
+  <p class="guida">
+    Due mappe navigabili in cui ogni poligono &egrave; una sezione elettorale, con i voti
+    agganciati. Girano nel browser senza server: la pagina contiene gi&agrave; geometrie e
+    risultati, dalla rete arrivano solo i caratteri tipografici e le tessere del fondo
+    cartografico. Sono file pesanti, il primo caricamento richiede qualche secondo.
+  </p>
+
+  <div class="carte">
+    <a class="carta" href="roma-2021/">
+      <h2>Roma 2021</h2>
+      <div class="data">Comunali, 3 e 4 ottobre 2021</div>
+      <p>
+        Liste comunali, candidati sindaco, presidente e liste dei quindici municipi,
+        preferenze dei candidati al consiglio comunale.
+      </p>
+      <div class="cifre">
+        <span class="cifra"><b>2.597</b><span>sezioni</span></span>
+        <span class="cifra"><b>523</b><span>serie mappate</span></span>
+        <span class="cifra"><b>1.648</b><span>candidati</span></span>
+      </div>
+    </a>
+
+    <a class="carta" href="europee-2024/">
+      <h2>Dieci citt&agrave;</h2>
+      <div class="data">Europee, 9 giugno 2024</div>
+      <p>
+        Roma, Milano, Torino, Napoli, Genova, Palermo, Bologna, Firenze, Modena e
+        Cesena: affluenza, voti di lista e preferenze, con il divario di genere dove
+        il dato esiste.
+      </p>
+      <div class="cifre">
+        <span class="cifra"><b>7.946</b><span>sezioni</span></span>
+        <span class="cifra"><b>10</b><span>citt&agrave;</span></span>
+        <span class="cifra"><b>1.748</b><span>candidati</span></span>
+      </div>
+    </a>
+  </div>
+
+  <h3>Da dove vengono i dati</h3>
+  <p class="nota">
+    <b>Risultati.</b> Europee 2024: file per sezione del Ministero dell'Interno.
+    Comunali di Roma 2021: verbali dell'ufficio centrale di Roma Capitale, modelli
+    ministeriali 300/I-AR, 301-AR, 302-AR, 311-M e 312-M. Ogni prospetto &egrave; stato
+    quadrato contro i totali stampati sui verbali stessi.
+  </p>
+  <p class="nota">
+    <b>Geometrie.</b> Dove il Comune le pubblica sono quelle ufficiali (Bologna,
+    Genova, Firenze, Modena, Cesena); altrove sono ricostruite per prossimit&agrave; agli
+    indirizzi dei seggi a partire da
+    <a href="https://github.com/gabrielepinto/dati-sezioni-elettorali" target="_blank" rel="noreferrer">SEI,
+    Sezioni Elettorali Italiane</a> di Gabriele Pinto (CC-BY-SA 4.0).
+    <b>Le geometrie ricostruite non sono confini amministrativi</b>: vanno bene per
+    mappe tematiche e aggregazioni per zona, non per dire che un dato edificio ricade
+    in una data sezione.
+  </p>
+  <p class="nota">
+    <b>Fondo cartografico.</b> Esri World Light Gray Canvas (Esri, HERE, Garmin, FAO,
+    NOAA, USGS), fino al livello di zoom 16.
+  </p>
+
+  <h3>Due avvertenze</h3>
+  <p class="nota">
+    Le sezioni speciali (ospedaliere e simili) non hanno un perimetro e restano fuori
+    dalla mappa: pesano fra lo 0,000% e lo 0,277% dei voti a seconda della citt&agrave;.
+    Il riquadro Provenienza, dentro ogni mappa, riporta il dato esatto.
+  </p>
+  <p class="nota">
+    Nella mappa di Roma 2021 la metrica si chiama <b>partecipazione</b> e non affluenza:
+    i verbali pubblicano i voti validi, non i votanti, quindi bianche e nulle restano
+    fuori dal conto e il numero sta sotto l'affluenza vera.
+  </p>
+
+  <footer>
+    Codice e note di costruzione:
+    <a href="https://github.com/alessandroalberti-researchunit/atlanti-elettorali" target="_blank" rel="noreferrer">github.com/alessandroalberti-researchunit/atlanti-elettorali</a>
+  </footer>
+
+</div>
+</body>
+</html>
