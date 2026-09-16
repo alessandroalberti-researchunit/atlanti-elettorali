@@ -205,8 +205,16 @@ canvas.puntabile { cursor: pointer; }
 @media (max-width: 1560px) {
   .centro-alto { order: 3; flex-basis: 100%; margin-top: 8px; }
 }
+/* Le cifre stanno nel riquadro sulla mappa, non piu' in una sezione della colonna:
+   si leggono dove si guarda, e cambiano a ogni clic su una sezione. */
+.stat-riga { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 10px; }
+.riga-sezione {
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--filo-tenue);
+}
+.riga-sezione .sez-titolo { font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+.riga-sezione .sez-titolo b { color: var(--inchiostro); }
 .intestazione-mappa {
-  max-width: 46ch; pointer-events: auto;
+  max-width: 52ch; pointer-events: auto;
   background: var(--carta); border: 1px solid var(--filo-tenue);
   border-radius: var(--r); padding: 8px 12px; box-shadow: var(--ombra);
 }
@@ -610,10 +618,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         <div id="classifica"></div>
         <p class="nota" id="nota-classifica"></p>
       </div>
-      <div class="sezione-rail">
-        <div class="etichetta">La città in cifre</div>
-        <div class="stat-griglia" id="stat-citta"></div>
-      </div>
       <div class="sezione-rail nascosto" id="blocco-flussi">
         <div class="etichetta" id="etichetta-flussi">Flussi stimati</div>
         <div id="flussi"></div>
@@ -636,6 +640,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       <div class="intestazione-mappa">
         <h2 id="titolo-mappa">Italia</h2>
         <p id="didascalia-mappa">Le dieci città con geometria delle sezioni disponibile.</p>
+        <div class="stat-riga nascosto" id="stat-citta"></div>
+        <div class="riga-sezione nascosto" id="riga-sezione"></div>
       </div>
       <div class="centro-alto">
         <div class="striscia-tornate nascosto" id="striscia-tornate"
@@ -2125,26 +2131,109 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   /* Con un filtro attivo le quattro cifre devono parlare tutte della stessa cosa: la
      mediana e' gia' calcolata sulle sole sezioni dentro la zona, quindi anche sezioni,
      elettori e affluenza si ricontano li' invece di usare i totali di citta'. */
+  /* Quota della metrica corrente sull'insieme che si sta guardando: tutta la citta',
+     oppure la zona se c'e' un filtro. **Si somma sui voti**, non facendo la media delle
+     quote di sezione, che darebbe un numero diverso e sbagliato. */
+  function quotaAggregata(c, tid) {
+    var m = stato.metrica, num = 0, den = 0;
+    var cand = stato.candidato ? candidatoAttivo(c) : null;
+    var mappa = cand ? mappaCandidato(c, cand) : null;
+    c.sez.forEach(function (s) {
+      if (!dentroFiltro(s)) return;
+      if (stato.confronto && (!copre(s, stato.tornata) || !copre(s, stato.confronto))) return;
+      if (cand) {
+        if (tid !== stato.tornata) return;
+        var j2 = c.liste.indexOf(cand.lista);
+        if (j2 >= 0) { num += mappa[s.i]; den += s.l[j2] || 0; }
+        return;
+      }
+      if (m === "affluenza") {
+        var d = s.t[tid];
+        if (d && d.v !== null && d.v !== undefined) { num += d.v; den += d.e; }
+      } else if (m.indexOf("area:") === 0) {
+        num += votiArea(c, s, tid, m.slice(5));
+        den += baseArea(s, tid);
+      } else if (tid === stato.tornata) {
+        var j3 = c.liste.indexOf(m);
+        if (j3 >= 0) { num += s.l[j3] || 0; den += s.w; }
+      }
+    });
+    return den ? 100 * num / den : null;
+  }
+  function quotaCorrente(c) {
+    if (stato.metrica === "divario") return null;   // il divario non e' una quota
+    var a = quotaAggregata(c, stato.tornata);
+    if (!stato.confronto) return a;
+    var b = quotaAggregata(c, stato.confronto);
+    return (a === null || b === null) ? null : a - b;
+  }
+
   function aggiornaStatCitta() {
+    var box = document.getElementById("stat-citta");
+    if (stato.vista !== "citta" || !stato.citta) {
+      box.classList.add("nascosto");
+      document.getElementById("riga-sezione").classList.add("nascosto");
+      return;
+    }
+    box.classList.remove("nascosto");
     var c = stato.citta;
-    var vals = c.sez.map(function (s) { return valore(c, s); }).filter(function (v) { return v !== null; });
+    var vals = c.sez.map(function (s) { return valore(c, s); })
+      .filter(function (v) { return v !== null; });
     vals.sort(function (a, b) { return a - b; });
     var med = vals.length ? vals[Math.floor(vals.length / 2)] : null;
-    var quante = c.sez.length, elettori = c.elettori, affl = c.affluenza;
-    if (stato.zona) {
-      var votanti = 0;
-      quante = 0; elettori = 0;
-      c.sez.forEach(function (s) {
-        if (!dentroFiltro(s)) return;
-        quante++; elettori += s.e; votanti += s.v;
-      });
-      affl = elettori ? 100 * votanti / elettori : null;
+    var quante = 0, elettori = 0, votanti = 0, haVotanti = false;
+    c.sez.forEach(function (s) {
+      if (!dentroFiltro(s)) return;
+      quante++; elettori += s.e;
+      if (s.v !== null) { votanti += s.v; haVotanti = true; }
+    });
+    var affl = (haVotanti && elettori) ? 100 * votanti / elettori : null;
+    var quota = quotaCorrente(c);
+    var dove = stato.zona ? etichettaZona(stato.zona.campo, stato.zona.valore) : "in citt\u00e0";
+    var celle =
+      stat(nf.format(quante), stato.zona ? "sezioni nella zona" : "sezioni") +
+      stat(nf.format(elettori), "elettori");
+    // quando la metrica e' l'affluenza, la quota aggregata **e'** l'affluenza: una cella sola
+    if (stato.metrica === "affluenza") {
+      celle += stat(fmt(quota), "affluenza, " + dove);
+    } else if (quota !== null) {
+      celle += stat(fmt(quota), nomeMetrica() + ", " + dove);
+      if (affl !== null && !stato.confronto) celle += stat(pf(affl), "affluenza");
+    } else {
+      celle += stat(pf(affl), "affluenza");
     }
-    document.getElementById("stat-citta").innerHTML =
-      stat(nf.format(quante), stato.zona ? "sezioni nella zona" : "sezioni con geometria") +
-      stat(nf.format(elettori), "elettori") +
-      stat(pf(affl), "affluenza") +
-      stat(fmt(med), "mediana, " + nomeMetrica().toLowerCase());
+    celle += stat(fmt(med), "mediana per sezione");
+    box.innerHTML = celle;
+    aggiornaRigaSezione();
+  }
+
+  /* I dati della sezione selezionata, nello stesso riquadro: cambiano a ogni clic. */
+  function aggiornaRigaSezione() {
+    var riga = document.getElementById("riga-sezione");
+    var c = stato.citta;
+    if (!c || stato.vista !== "citta" || typeof stato.fissata !== "number" ||
+        !c.sez[stato.fissata]) {
+      riga.classList.add("nascosto");
+      return;
+    }
+    var s = c.sez[stato.fissata];
+    var zone = zoneDiSezione(c, s);
+    var pos = posizione(c, s);
+    var celle =
+      stat(nf.format(s.e), "iscritti") +
+      stat(s.v === null ? "n.d." : pf(s.e ? 100 * s.v / s.e : null), "affluenza");
+    // con la metrica affluenza il valore della sezione e' gia' la cella qui sopra
+    if (stato.metrica !== "affluenza" || stato.confronto) {
+      celle += stat(fmt(valore(c, s)), nomeMetrica());
+    }
+    if (pos) {
+      celle += stat(nf.format(pos.rango) + "\u00aa", "su " + nf.format(pos.n) + " sezioni");
+    }
+    riga.innerHTML =
+      '<div class="sez-titolo"><b>Sezione ' + s.s + "</b>" +
+      (zone.length ? " \u00b7 " + zone.join(" \u00b7 ") : "") + "</div>" +
+      '<div class="stat-riga" style="margin-top:0">' + celle + "</div>";
+    riga.classList.remove("nascosto");
   }
 
   /* Valori distinti di un campo di zona, nell'ordine in cui conviene leggerli:
@@ -2766,7 +2855,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var dest = inquadraSezione(c, idx);
     if (stato.citta !== c) apriCitta(k, dest); else vola(dest, 700);
     stato.fissata = idx; stato.evidenziata = null;
-    aggiornaSezioneFissata(); aggiornaBanner(); aggiornaClassifica(); disegna();
+    aggiornaSezioneFissata(); aggiornaRigaSezione(); aggiornaBanner();
+    aggiornaClassifica(); disegna();
   }
   // scegliere un candidato dalla ricerca colora la mappa con la sua quota
   function vaiACandidato(k, cd) {
@@ -2801,8 +2891,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   /* ---- scheda della sezione fissata ---- */
   function fissaSezione(idx) {
     stato.fissata = idx;
-    aggiornaSezioneFissata(); aggiornaBanner(); aggiornaClassifica();
-    disegna();
+    aggiornaSezioneFissata(); aggiornaRigaSezione(); aggiornaBanner();
+    aggiornaClassifica(); disegna();
   }
   // riga "dove cade questa sezione" sotto le cifre della scheda
   function pistaPosizione(c, s) {
@@ -2912,7 +3002,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       vola(inquadraSezione(c, idx), 600);
     });
     document.getElementById("deseleziona-sez").addEventListener("click", function () {
-      stato.fissata = null; aggiornaSezioneFissata(); aggiornaBanner(); disegna();
+      stato.fissata = null;
+      aggiornaSezioneFissata(); aggiornaRigaSezione(); aggiornaBanner(); disegna();
     });
     blocco.classList.remove("nascosto");
   }
