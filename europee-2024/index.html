@@ -182,11 +182,25 @@ canvas.puntabile { cursor: pointer; }
   top: 0; left: 0; right: 0; padding: 16px 20px;
   display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
 }
-.intestazione-mappa { max-width: 46ch; }
+/* Il titolo sta sopra le tessere, che sono chiare in tutti e due i temi: senza una
+   piastra dietro, nel tema scuro l'inchiostro chiaro finirebbe su un fondo chiaro. */
+.intestazione-mappa {
+  max-width: 46ch; pointer-events: auto;
+  background: var(--carta); border: 1px solid var(--filo-tenue);
+  border-radius: var(--r); padding: 8px 12px; box-shadow: var(--ombra);
+}
 .intestazione-mappa h2 {
   font-family: "Bodoni Moda", serif; font-size: 22px; letter-spacing: -.01em;
 }
 .intestazione-mappa p { margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
+/* La tendina del filtro deve reggere sia i 6 quartieri di Bologna sia le 94 zone
+   statistiche di Torino: con i chip la seconda diventerebbe un muro. */
+.tendina {
+  width: 100%; margin-top: 8px; padding: 6px 8px; font: inherit; font-size: 12.5px;
+  color: var(--inchiostro); background: var(--pannello);
+  border: 1px solid var(--filo); border-radius: var(--r);
+}
+.tendina:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
 .azioni { display: flex; gap: 6px; pointer-events: auto; }
 .bottone {
   border: 1px solid var(--filo); background: var(--pannello); border-radius: var(--r);
@@ -525,6 +539,11 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       <div class="sezione-rail">
         <div class="etichetta">Cosa colorare</div>
         <div class="scelta" id="metriche"></div>
+      </div>
+      <div class="sezione-rail nascosto" id="blocco-zona">
+        <div class="etichetta">Zona</div>
+        <div class="scelta nascosto" id="scelta-livello"></div>
+        <select id="filtro-zona" class="tendina" aria-label="Restringi la mappa a una zona"></select>
       </div>
       <div class="sezione-rail">
         <div class="etichetta">Fondo cartografico</div>
@@ -886,6 +905,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     fissata: null,
     fondo: "grigio",      // "grigio" | "nessuno"
     resa: RESA_APERTURA,  // indice dentro RESE: governa il riempimento delle sezioni
+    livello: 0,           // indice dentro campi_zona: per cosa aggrega la tabella Zone
+    zona: null,           // {campo, valore} quando la mappa e' ristretta a una zona
     candidato: null       // {lista, ord} quando la mappa colora un candidato
   };
   function resa() { return RESE[stato.resa] || RESE[RESA_APERTURA]; }
@@ -974,7 +995,39 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     return t;
   }
 
+  /* ------------------------------------------------ zone
+     I campi di zona stanno gia' nei dati (municipio, quartiere, NIL, zona urbanistica,
+     area statistica...), uno o piu' per citta' e dal piu' grosso al piu' fine. Due
+     comandi li usano: il livello, che dice per cosa aggrega la tabella, e il filtro,
+     che restringe tutto a una zona sola del livello piu' grosso. */
+  function valoreZona(s, campo) {
+    var v = s[campo];
+    return (v === null || v === undefined || v === "") ? null : String(v);
+  }
+  // "3" e' il municipio III: il numero nudo non e' come si chiama
+  function etichettaZona(campo, valore) {
+    if (valore === null) return "non attribuita";
+    if (campo === "municipio" && /^[0-9]+$/.test(valore)) {
+      return "Municipio " + romano(parseInt(valore, 10));
+    }
+    if (/^[0-9]+$/.test(valore)) return campo.replace(/_/g, " ") + " " + valore;
+    return valore;
+  }
+  var ROMANI = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI",
+                "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX"];
+  function romano(n) { return ROMANI[n] || String(n); }
+  function campoLivello(c) {
+    return c.campi_zona[Math.min(stato.livello, c.campi_zona.length - 1)] || null;
+  }
+  function dentroFiltro(s) {
+    if (!stato.zona) return true;
+    return valoreZona(s, stato.zona.campo) === stato.zona.valore;
+  }
+
   function valore(c, s) {
+    // fuori dalla zona scelta la sezione non ha un valore: resta grigia e sparisce
+    // da scala, classifica e mediana, che passano tutte di qui
+    if (!dentroFiltro(s)) return null;
     if (stato.candidato) {
       var cand = candidatoAttivo(c);
       if (!cand) return null;
@@ -1009,6 +1062,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   var cacheScala = {};
   function scala(c) {
     var chiave = c.chiave + "|" + stato.metrica + "|" +
+      (stato.zona ? stato.zona.campo + "=" + stato.zona.valore : "") + "|" +
       (stato.candidato ? stato.candidato.lista + "#" + stato.candidato.ord : "");
     if (cacheScala[chiave]) return cacheScala[chiave];
     var vals = [];
@@ -1169,6 +1223,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     return [stato.vista, stato.citta ? stato.citta.chiave : "-", stato.metrica,
       scuro ? 1 : 0, W, H, dpr, cam.lon, cam.y, cam.scala, stato.fondo, stato.resa,
       stato.candidato ? stato.candidato.lista + "#" + stato.candidato.ord : "",
+      stato.zona ? stato.zona.campo + "=" + stato.zona.valore : "",
       stato.vista === "atlante" ? stato.evidenziata : ""].join("|");
   }
   function disegnaFondo() {
@@ -1489,30 +1544,144 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       "<span>" + fmt(sc.min) + "</span><span>" + fmt((sc.min + sc.max) / 2) + "</span><span>" + fmt(sc.max) + "</span>";
   }
 
+  /* Con un filtro attivo le quattro cifre devono parlare tutte della stessa cosa: la
+     mediana e' gia' calcolata sulle sole sezioni dentro la zona, quindi anche sezioni,
+     elettori e affluenza si ricontano li' invece di usare i totali di citta'. */
   function aggiornaStatCitta() {
     var c = stato.citta;
     var vals = c.sez.map(function (s) { return valore(c, s); }).filter(function (v) { return v !== null; });
     vals.sort(function (a, b) { return a - b; });
     var med = vals.length ? vals[Math.floor(vals.length / 2)] : null;
+    var quante = c.sez.length, elettori = c.elettori, affl = c.affluenza;
+    if (stato.zona) {
+      var votanti = 0;
+      quante = 0; elettori = 0;
+      c.sez.forEach(function (s) {
+        if (!dentroFiltro(s)) return;
+        quante++; elettori += s.e; votanti += s.v;
+      });
+      affl = elettori ? 100 * votanti / elettori : null;
+    }
     document.getElementById("stat-citta").innerHTML =
-      stat(nf.format(c.sez.length), "sezioni con geometria") +
-      stat(nf.format(c.elettori), "elettori") +
-      stat(pf(c.affluenza), "affluenza") +
+      stat(nf.format(quante), stato.zona ? "sezioni nella zona" : "sezioni con geometria") +
+      stat(nf.format(elettori), "elettori") +
+      stat(pf(affl), "affluenza") +
       stat(fmt(med), "mediana, " + nomeMetrica().toLowerCase());
   }
 
+  /* Valori distinti di un campo di zona, nell'ordine in cui conviene leggerli:
+     i numeri come numeri, il resto in ordine alfabetico. */
+  function valoriZona(c, campo) {
+    var visti = {}, fuori = [];
+    c.sez.forEach(function (s) {
+      var v = valoreZona(s, campo);
+      if (v !== null && !visti[v]) { visti[v] = 1; fuori.push(v); }
+    });
+    var numerici = fuori.every(function (v) { return /^[0-9]+$/.test(v); });
+    fuori.sort(numerici
+      ? function (a, b) { return parseInt(a, 10) - parseInt(b, 10); }
+      : function (a, b) { return a.localeCompare(b, "it"); });
+    return fuori;
+  }
+
+  function costruisciZona() {
+    var c = stato.citta;
+    var blocco = document.getElementById("blocco-zona");
+    blocco.classList.toggle("nascosto", !c.campi_zona.length);
+    if (!c.campi_zona.length) {
+      // Napoli e Palermo non hanno campi di zona: il blocco sparisce, ma va anche
+      // svuotato, o si porterebbe dietro i valori della citta' aperta prima
+      document.getElementById("scelta-livello").innerHTML = "";
+      document.getElementById("filtro-zona").innerHTML = "";
+      return;
+    }
+
+    // il livello si sceglie solo dove c'e' piu' di un campo
+    var el = document.getElementById("scelta-livello");
+    el.innerHTML = "";
+    el.classList.toggle("nascosto", c.campi_zona.length < 2);
+    c.campi_zona.forEach(function (campo, i) {
+      var b = document.createElement("button");
+      b.className = "chip"; b.type = "button";
+      b.textContent = campo.replace(/_/g, " ");
+      b.title = "Aggrega la tabella per " + campo.replace(/_/g, " ");
+      b.setAttribute("aria-pressed", String(stato.livello === i));
+      b.addEventListener("click", function () {
+        if (stato.livello === i) return;
+        stato.livello = i;
+        costruisciZona(); aggiornaZone();
+      });
+      el.appendChild(b);
+    });
+
+    // il filtro lavora sul campo piu' grosso, quello con pochi valori
+    var campo = c.campi_zona[0];
+    var sel = document.getElementById("filtro-zona");
+    sel.innerHTML = "";
+    var tutta = document.createElement("option");
+    tutta.value = ""; tutta.textContent = "Tutta la città, " + c.sez.length + " sezioni";
+    sel.appendChild(tutta);
+    valoriZona(c, campo).forEach(function (v) {
+      var quante = 0;
+      c.sez.forEach(function (s) { if (valoreZona(s, campo) === v) quante++; });
+      var o = document.createElement("option");
+      o.value = v;
+      o.textContent = etichettaZona(campo, v) + ", " + quante + " sez.";
+      sel.appendChild(o);
+    });
+    sel.value = stato.zona ? stato.zona.valore : "";
+  }
+
+  document.getElementById("filtro-zona").addEventListener("change", function () {
+    var c = stato.citta;
+    if (!c) return;
+    applicaFiltroZona(this.value ? { campo: c.campi_zona[0], valore: this.value } : null);
+  });
+
+  function applicaFiltroZona(zona, inquadra) {
+    var c = stato.citta;
+    stato.zona = zona;
+    // restringendo a un municipio la tabella per municipi darebbe una riga sola:
+    // si scende al livello sotto, se c'e'
+    if (zona && stato.livello === 0 && c.campi_zona.length > 1) stato.livello = 1;
+    if (!zona && stato.livello === 1 && c.campi_zona.length > 1) stato.livello = 0;
+    cacheScala = {};
+    costruisciZona(); aggiornaLegenda(); aggiornaZone(); aggiornaClassifica();
+    aggiornaTitolo(); aggiornaStatCitta(); aggiornaSezioneFissata(); aggiornaBanner();
+    if (inquadra !== false) vola(inquadraFiltro(), 700);
+    disegna();
+  }
+
+  function inquadraFiltro() {
+    var c = stato.citta;
+    if (!stato.zona) return inquadratura(c.bbox);
+    var b = [1e9, 1e9, -1e9, -1e9], quante = 0;
+    c.sez.forEach(function (s) {
+      if (!dentroFiltro(s)) return;
+      quante++;
+      if (s.bbox[0] < b[0]) b[0] = s.bbox[0];
+      if (s.bbox[1] < b[1]) b[1] = s.bbox[1];
+      if (s.bbox[2] > b[2]) b[2] = s.bbox[2];
+      if (s.bbox[3] > b[3]) b[3] = s.bbox[3];
+    });
+    return quante ? inquadraturaLimitata(espandi(b, .06), .06) : inquadratura(c.bbox);
+  }
+
   function aggiornaZone() {
-    var c = stato.citta, campo = c.campi_zona[0];
+    var c = stato.citta, campo = campoLivello(c);
     var cand = candidatoAttivo(c), mappa = cand ? mappaCandidato(c, cand) : null;
     var gen = divergente() ? preparaGenere(c) : null;
     var blocco = document.getElementById("blocco-zone");
     if (!campo) { blocco.classList.add("nascosto"); return; }
     blocco.classList.remove("nascosto");
     document.getElementById("etichetta-zone").textContent =
-      campo.replace(/_/g, " ") + ", aggregato dalle sezioni";
+      campo.replace(/_/g, " ") + ", aggregato dalle sezioni" +
+      (stato.zona ? " di " + etichettaZona(stato.zona.campo, stato.zona.valore) : "");
     var gruppi = {};
     c.sez.forEach(function (s) {
-      var k = s[campo] === null || s[campo] === undefined || s[campo] === "" ? "non attribuita" : String(s[campo]);
+      if (!dentroFiltro(s)) return;
+      var v = valoreZona(s, campo);
+      var k = etichettaZona(campo, v);
       var g = gruppi[k] || (gruppi[k] = { n: 0, e: 0, v: 0, w: 0, l: 0, p: 0,
                                           eu: 0, ed: 0, vu: 0, vd: 0 });
       g.n++; g.e += s.e; g.v += s.v; g.w += s.w;
@@ -1563,10 +1732,18 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       return;
     }
     var c = stato.citta;
-    document.getElementById("titolo-mappa").textContent = c.nome;
+    var quante = c.sez.length;
+    if (stato.zona) {
+      quante = 0;
+      c.sez.forEach(function (s) { if (dentroFiltro(s)) quante++; });
+    }
+    document.getElementById("titolo-mappa").textContent = c.nome +
+      (stato.zona ? ", " + etichettaZona(stato.zona.campo, stato.zona.valore) : "");
     document.getElementById("didascalia-mappa").textContent =
       nomeMetrica() + (stato.candidato ? " (" + suCosa() + ")" : "") + ", " +
-      nf.format(c.sez.length) + " sezioni. Passa sopra una sezione per i dettagli.";
+      nf.format(quante) + " sezioni" +
+      (stato.zona ? " su " + nf.format(c.sez.length) : "") +
+      ". Passa sopra una sezione per i dettagli.";
   }
 
   /* ------------------------------------------------ banner delle preferenze
@@ -1780,8 +1957,9 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
           pezzi.push(nomeCampo + " " + v);
           var g = mappe[ci][v] || (mappe[ci][v] = {
             campo: campo, valore: v,
-            etichetta: /^[0-9]+$/.test(v) ? nomeCampo + " " + v : v,
-            norm: normalizza(nomeCampo + " " + v), idx: []
+            etichetta: etichettaZona(campo, v),
+            // "municipio 7" e "municipio VII" devono trovare la stessa zona
+            norm: normalizza(nomeCampo + " " + v + " " + etichettaZona(campo, v)), idx: []
           });
           g.idx.push(idx);
         });
@@ -1929,7 +2107,10 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var dest = inquadraturaLimitata(espandi(b, .06), .06);
     if (stato.citta !== c) apriCitta(k, dest); else vola(dest, 700);
     stato.fissata = null; stato.evidenziata = null;
-    aggiornaSezioneFissata(); aggiornaBanner(); disegna();
+    // se la zona e' del campo piu' grosso, la si prende come filtro: cercare
+    // "municipio 7" e vederlo solo inquadrato, con tutto il resto acceso, sarebbe meno
+    if (z.campo === c.campi_zona[0]) applicaFiltroZona({ campo: z.campo, valore: z.valore }, false);
+    else { aggiornaSezioneFissata(); aggiornaBanner(); disegna(); }
   }
 
   /* ---- scheda della sezione fissata ---- */
@@ -1956,8 +2137,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   function zoneDiSezione(c, s) {
     return c.campi_zona.map(function (campo) {
-      var v = s[campo];
-      return (v === null || v === undefined || v === "") ? null : String(v);
+      var v = valoreZona(s, campo);
+      return v === null ? null : etichettaZona(campo, v);
     }).filter(function (v) { return v; });
   }
   function aggiornaSezioneFissata() {
@@ -2118,6 +2299,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     preparaCitta(c);
     stato.vista = "citta"; stato.citta = c; stato.fissata = null; stato.evidenziata = null;
     stato.candidato = null;               // un candidato vale per la citta' in cui sta
+    stato.livello = 0; stato.zona = null; // livello e filtro valgono per la citta' aperta
+    cacheScala = {};
     if (c.liste.indexOf(stato.metrica) < 0 && stato.metrica !== "affluenza") stato.metrica = "affluenza";
     document.getElementById("rail-atlante").classList.add("nascosto");
     document.getElementById("rail-citta").classList.remove("nascosto");
@@ -2126,7 +2309,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     Array.prototype.forEach.call(document.querySelectorAll(".voce"), function (b) {
       b.setAttribute("aria-current", String(b.dataset.citta === k));
     });
-    costruisciMetriche(); costruisciFondo(); aggiornaLegenda(); aggiornaStatCitta();
+    costruisciMetriche(); costruisciZona(); costruisciFondo(); aggiornaLegenda(); aggiornaStatCitta();
     aggiornaZone(); aggiornaClassifica(); aggiornaTitolo(); aggiornaProvenienza(); aggiornaSezioneFissata();
     aggiornaResaVisibile(); aggiornaBanner();
     vola(destinazione || inquadratura(c.bbox), 900);
@@ -2167,7 +2350,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       return '<div class="sug-riga"><span>' + simboloHtml(t.l, 15) + abbrevia(t.l) + "</span><b>" +
         (s.w ? (100 * t.n / s.w).toFixed(1).replace(".", ",") + "%" : "n.d.") + "</b></div>";
     }).join("");
-    var zona = c.campi_zona.length && s[c.campi_zona[0]] ? " · " + s[c.campi_zona[0]] : "";
+    var zone2 = zoneDiSezione(c, s);
+    var zona = zone2.length ? " · " + zone2[zone2.length - 1] : "";
     return '<div class="sug-titolo">Sezione ' + s.s + zona + "</div>" +
       '<div class="sug-cifra">' + fmt(v) + "</div>" +
       '<div class="sug-riga"><span>elettori</span><b>' + nf.format(s.e) + "</b></div>" +
