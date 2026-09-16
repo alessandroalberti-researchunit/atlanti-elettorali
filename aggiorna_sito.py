@@ -19,6 +19,10 @@ QUI = os.path.dirname(os.path.abspath(__file__))
 FUORI = os.path.dirname(QUI)
 
 COPIE = [
+    # l'atlante con le tornate: e' quello buono, gli altri due restano per non
+    # rompere gli indirizzi gia' in giro
+    (os.path.join(FUORI, 'Atlante_Unificato', 'atlante.html'),
+     os.path.join(QUI, 'atlante', 'index.html')),
     (os.path.join(FUORI, 'Atlante_Roma_2021', 'atlante_roma2021.html'),
      os.path.join(QUI, 'roma-2021', 'index.html')),
     (os.path.join(FUORI, 'Atlante_Sezioni', 'atlante.html'),

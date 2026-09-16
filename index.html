@@ -96,12 +96,36 @@ footer { margin-top: 40px; border-top: 1px solid var(--filo-tenue); padding-top:
   <div class="occhiello">Sezioni elettorali italiane</div>
   <h1>Atlanti elettorali,<br>sezione per sezione</h1>
   <p class="guida">
-    Due mappe navigabili in cui ogni poligono &egrave; una sezione elettorale, con i voti
+    Mappe navigabili in cui ogni poligono &egrave; una sezione elettorale, con i voti
     agganciati. Girano nel browser senza server: la pagina contiene gi&agrave; geometrie e
     risultati, dalla rete arrivano solo i caratteri tipografici e le tessere del fondo
     cartografico. Sono file pesanti, il primo caricamento richiede qualche secondo.
   </p>
 
+  <div class="carte">
+    <a class="carta" href="atlante/" style="grid-column:1/-1">
+      <h2>Atlante delle sezioni</h2>
+      <div class="data">Dieci citt&agrave;, e a Roma quattro tornate dal 2021 al 2024</div>
+      <p>
+        Le europee 2024 in dieci citt&agrave;; per Roma anche comunali 2021, politiche 2022 e
+        regionali 2023, sulle stesse sezioni. Si cambia tornata tenendo ferma la sezione,
+        si confrontano due voti in punti di differenza, si legge la traiettoria di una
+        singola sezione e si guardano i flussi stimati per citt&agrave; e per municipio.
+      </p>
+      <div class="cifre">
+        <span class="cifra"><b>7.946</b><span>sezioni</span></span>
+        <span class="cifra"><b>4</b><span>tornate a Roma</span></span>
+        <span class="cifra"><b>83</b><span>liste in 12 aree</span></span>
+        <span class="cifra"><b>3.396</b><span>candidati</span></span>
+      </div>
+    </a>
+  </div>
+
+  <h3>Le due mappe di prima</h3>
+  <p class="nota" style="margin-bottom:16px">
+    Superate da quella qui sopra, che contiene tutto. Restano in piedi perch&eacute; i loro
+    indirizzi sono gi&agrave; in giro.
+  </p>
   <div class="carte">
     <a class="carta" href="roma-2021/">
       <h2>Roma 2021</h2>
@@ -133,12 +157,28 @@ footer { margin-top: 40px; border-top: 1px solid var(--filo-tenue); padding-top:
     </a>
   </div>
 
+  <h3>Confronti e flussi</h3>
+  <p class="nota">
+    Il confronto fra tornate lavora su <b>aree politiche</b>, non sulle singole liste: le
+    liste cambiano nome a ogni voto, e ricondurle ad aree &egrave; una scelta editoriale
+    dichiarata, non un dato. La mappatura delle 83 liste alle 12 aree &egrave; un file che
+    si pu&ograve; aprire e correggere.
+  </p>
+  <p class="nota">
+    I <b>flussi</b> sono stime per inferenza ecologica, valide per un aggregato (la citt&agrave;
+    o un municipio) e <b>mai per una singola sezione</b>: da quote aggregate i passaggi
+    individuali non si vedono, e una sezione &egrave; un'osservazione sola. Per la singola
+    sezione la mappa mostra le quote osservate nelle quattro tornate, che sono aritmetica
+    esatta. Le righe che i dati non possono determinare non vengono mostrate.
+  </p>
+
   <h3>Da dove vengono i dati</h3>
   <p class="nota">
     <b>Risultati.</b> Europee 2024: file per sezione del Ministero dell'Interno.
     Comunali di Roma 2021: verbali dell'ufficio centrale di Roma Capitale, modelli
-    ministeriali 300/I-AR, 301-AR, 302-AR, 311-M e 312-M. Ogni prospetto &egrave; stato
-    quadrato contro i totali stampati sui verbali stessi.
+    ministeriali 300/I-AR, 301-AR, 302-AR, 311-M e 312-M, quadrati contro i totali
+    stampati sui verbali stessi. Politiche 2022 e regionali 2023: file per sezione di
+    Roma Capitale.
   </p>
   <p class="nota">
     <b>Geometrie.</b> Dove il Comune le pubblica sono quelle ufficiali (Bologna,
@@ -155,16 +195,22 @@ footer { margin-top: 40px; border-top: 1px solid var(--filo-tenue); padding-top:
     NOAA, USGS), fino al livello di zoom 16.
   </p>
 
-  <h3>Due avvertenze</h3>
+  <h3>Tre avvertenze</h3>
   <p class="nota">
     Le sezioni speciali (ospedaliere e simili) non hanno un perimetro e restano fuori
     dalla mappa: pesano fra lo 0,000% e lo 0,277% dei voti a seconda della citt&agrave;.
     Il riquadro Provenienza, dentro ogni mappa, riporta il dato esatto.
   </p>
   <p class="nota">
-    Nella mappa di Roma 2021 la metrica si chiama <b>partecipazione</b> e non affluenza:
-    i verbali pubblicano i voti validi, non i votanti, quindi bianche e nulle restano
-    fuori dal conto e il numero sta sotto l'affluenza vera.
+    Per le <b>comunali 2021</b> i verbali pubblicano i voti validi, non i votanti:
+    l'affluenza per sezione non esiste e resta vuota. Per il comune nel suo insieme fu
+    48,54%.
+  </p>
+  <p class="nota">
+    Il file per sezione delle <b>politiche 2022</b> copre circa 308.000 elettori meno
+    delle regionali di cinque mesi dopo. Le quote di lista reggono, l'affluenza no, e in
+    555 sezioni su 2.597 quella tornata misura una popolazione diversa dalle altre: quelle
+    sezioni restano fuori dai confronti e dalle stime di flusso.
   </p>
 
   <footer>
