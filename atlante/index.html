@@ -184,16 +184,25 @@ canvas.puntabile { cursor: pointer; }
 }
 /* Il titolo sta sopra le tessere, che sono chiare in tutti e due i temi: senza una
    piastra dietro, nel tema scuro l'inchiostro chiaro finirebbe su un fondo chiaro. */
-/* Titolo e tornate stanno incolonnati a sinistra, i comandi di sistema a destra. */
-.colonna-alta { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
-/* La tornata e' la scelta che si cambia piu' spesso: sta sulla mappa, non in fondo
-   alla colonna dell'analisi. La piastra dietro serve perche' i chip stanno sopra le
-   tessere, che sono chiare in tutti e due i temi. */
+/* La tornata e' la scelta che si cambia piu' spesso: sta sulla mappa, in mezzo fra il
+   riquadro della citta' e i comandi di sistema. Si centra nello spazio fra i due e non
+   sulla meta' dello schermo: cosi' non ci finisce mai sopra, qualunque sia la lunghezza
+   del titolo. La piastra dietro serve perche' i chip stanno sopra le tessere, che sono
+   chiare in tutti e due i temi. */
+.barra-alta { flex-wrap: wrap; }
+.intestazione-mappa { flex: 0 1 auto; }
+.centro-alto { flex: 1 1 auto; display: flex; justify-content: center; min-width: 0; }
 .striscia-tornate {
   display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto;
   background: var(--carta); border: 1px solid var(--filo-tenue);
   border-radius: var(--r); padding: 6px 7px; box-shadow: var(--ombra);
-  max-width: min(62ch, calc(100vw - 32px));
+  max-width: 100%;
+}
+/* Quando i tre pezzi non ci stanno in fila la striscia scende su una riga sua, sempre
+   centrata. La soglia e' alta apposta: lasciata piu' in basso, a andare a capo erano i
+   pulsanti di sistema, che e' peggio che far scendere la striscia. */
+@media (max-width: 1460px) {
+  .centro-alto { order: 3; flex-basis: 100%; margin-top: 8px; }
 }
 .intestazione-mappa {
   max-width: 46ch; pointer-events: auto;
@@ -621,11 +630,11 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   <main class="palco" id="palco">
     <canvas id="tela"></canvas>
     <div class="sopra barra-alta">
-      <div class="colonna-alta">
-        <div class="intestazione-mappa">
-          <h2 id="titolo-mappa">Italia</h2>
-          <p id="didascalia-mappa">Le dieci città con geometria delle sezioni disponibile.</p>
-        </div>
+      <div class="intestazione-mappa">
+        <h2 id="titolo-mappa">Italia</h2>
+        <p id="didascalia-mappa">Le dieci città con geometria delle sezioni disponibile.</p>
+      </div>
+      <div class="centro-alto">
         <div class="striscia-tornate nascosto" id="striscia-tornate"
              role="group" aria-label="Tornata elettorale"></div>
       </div>
