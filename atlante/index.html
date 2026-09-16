@@ -200,8 +200,9 @@ canvas.puntabile { cursor: pointer; }
 }
 /* Quando i tre pezzi non ci stanno in fila la striscia scende su una riga sua, sempre
    centrata. La soglia e' alta apposta: lasciata piu' in basso, a andare a capo erano i
-   pulsanti di sistema, che e' peggio che far scendere la striscia. */
-@media (max-width: 1460px) {
+   comandi di sistema, che finivano a sinistra sotto il titolo. Tiene conto anche della
+   tendina delle zone, che allarga quella colonna oltre i due pulsanti. */
+@media (max-width: 1560px) {
   .centro-alto { order: 3; flex-basis: 100%; margin-top: 8px; }
 }
 .intestazione-mappa {
@@ -221,7 +222,14 @@ canvas.puntabile { cursor: pointer; }
   border: 1px solid var(--filo); border-radius: var(--r);
 }
 .tendina:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
-.azioni { display: flex; gap: 6px; pointer-events: auto; position: relative; }
+.azioni {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  pointer-events: auto; position: relative;
+}
+.azioni-riga { display: flex; gap: 6px; }
+/* La scelta della zona sta sulla mappa sotto i due pulsanti: restringe la vista, quindi
+   e' un comando della mappa e non dell'analisi. */
+.tendina-mappa { width: auto; min-width: 190px; max-width: min(320px, 42vw); }
 /* Il pannello delle impostazioni pende dal suo pulsante: sono scelte di sistema
    (tema, fondo, movimento), non scelte di analisi, e non devono occupare la colonna
    di sinistra insieme alle metriche. */
@@ -592,14 +600,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         <div class="etichetta">Cosa colorare</div>
         <div class="scelta" id="metriche"></div>
       </div>
-      <div class="sezione-rail nascosto" id="blocco-zona">
-        <div class="etichetta">Restringi la mappa a</div>
-        <select id="filtro-zona" class="tendina"
-                aria-label="Restringi la mappa a una zona"></select>
-        <p class="nota" id="nota-filtro-zona"></p>
-        <div class="etichetta nascosto" id="etichetta-livello">Raggruppa la tabella per</div>
-        <div class="scelta nascosto" id="scelta-livello"></div>
-      </div>
       <div class="sezione-rail">
         <div class="etichetta" id="etichetta-legenda">Legenda</div>
         <div class="rampa" id="rampa"></div>
@@ -642,9 +642,14 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
              role="group" aria-label="Tornata elettorale"></div>
       </div>
       <div class="azioni">
-        <button class="bottone" id="reimposta">Inquadra</button>
-        <button class="bottone" id="apri-impostazioni" type="button"
-                aria-expanded="false" aria-controls="impostazioni">Impostazioni</button>
+        <div class="azioni-riga">
+          <button class="bottone" id="reimposta">Inquadra</button>
+          <button class="bottone" id="apri-impostazioni" type="button"
+                  aria-expanded="false" aria-controls="impostazioni">Impostazioni</button>
+        </div>
+        <select id="filtro-zona" class="tendina tendina-mappa nascosto"
+                aria-label="Restringi la mappa a una zona"
+                title="Restringe mappa, classifica, mediana, tabella e flussi alle sole sezioni della zona scelta."></select>
         <div class="impostazioni nascosto" id="impostazioni" role="dialog"
              aria-label="Impostazioni">
           <button class="impostazioni-chiudi" id="chiudi-impostazioni" type="button"
@@ -2159,43 +2164,17 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   function costruisciZona() {
     var c = stato.citta;
-    var blocco = document.getElementById("blocco-zona");
-    blocco.classList.toggle("nascosto", !c.campi_zona.length);
-    if (!c.campi_zona.length) {
-      // Napoli e Palermo non hanno campi di zona: il blocco sparisce, ma va anche
-      // svuotato, o si porterebbe dietro i valori della citta' aperta prima
-      document.getElementById("scelta-livello").innerHTML = "";
-      document.getElementById("filtro-zona").innerHTML = "";
-      return;
-    }
-
-    // il livello si sceglie solo dove c'e' piu' di un campo
-    var el = document.getElementById("scelta-livello");
-    el.innerHTML = "";
-    var unLivello = c.campi_zona.length < 2;
-    el.classList.toggle("nascosto", unLivello);
-    document.getElementById("etichetta-livello").classList.toggle("nascosto", unLivello);
-    c.campi_zona.forEach(function (campo, i) {
-      var b = document.createElement("button");
-      b.className = "chip"; b.type = "button";
-      b.textContent = campo.replace(/_/g, " ");
-      b.title = "Raggruppa le righe della tabella per " + campo.replace(/_/g, " ") +
-        ". Non cambia la mappa.";
-      b.setAttribute("aria-pressed", String(stato.livello === i));
-      b.addEventListener("click", function () {
-        if (stato.livello === i) return;
-        stato.livello = i;
-        costruisciZona(); aggiornaZone();
-      });
-      el.appendChild(b);
-    });
-
-    /* La tendina elenca **tutti** i livelli, non solo il piu' grosso: scelto "zona
-       urbanistica" fra i chip ci si aspetta di poter restringere a una zona
-       urbanistica, e trovarci dentro solo i municipi era sbagliato. I gruppi tengono
-       separati i livelli, e il valore porta con se' il livello a cui appartiene. */
     var sel = document.getElementById("filtro-zona");
+    var senzaZone = !c.campi_zona.length;
+    sel.classList.toggle("nascosto", senzaZone || stato.vista !== "citta");
+    // Napoli e Palermo non hanno campi di zona: la tendina sparisce, ma va anche
+    // svuotata, o si porterebbe dietro i valori della citta' aperta prima
     sel.innerHTML = "";
+    if (senzaZone) return;
+
+    /* Una tendina sola, con **tutti** i livelli raggruppati: a Roma i 15 municipi e le
+       154 zone urbanistiche. Il raggruppamento della tabella non si sceglie piu' a mano,
+       scende da solo di un livello quando si restringe. */
     var tutta = document.createElement("option");
     tutta.value = ""; tutta.textContent = "Tutta la città, " + c.sez.length + " sezioni";
     sel.appendChild(tutta);
@@ -2214,12 +2193,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       });
       sel.appendChild(gruppo);
     });
-    sel.value = stato.zona ? (c.campi_zona.indexOf(stato.zona.campo) + "|" + stato.zona.valore) : "";
-    document.getElementById("nota-filtro-zona").textContent = stato.zona
-      ? ("Mappa, classifica, mediana e flussi considerano solo le sezioni di " +
-         etichettaZona(stato.zona.campo, stato.zona.valore) + ". Il resto resta grigio.")
-      : ("Restringe mappa, classifica, mediana, tabella e flussi a una zona sola. " +
-         "I chip qui sotto invece cambiano solo come si raggruppa la tabella.");
+    sel.value = stato.zona
+      ? (c.campi_zona.indexOf(stato.zona.campo) + "|" + stato.zona.valore) : "";
   }
 
   document.getElementById("filtro-zona").addEventListener("change", function () {
@@ -3081,8 +3056,11 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     vola(destinazione || inquadratura(c.bbox), 900);
   }
   function aggiornaResaVisibile() {
-    document.getElementById("resa-mappa").classList
-      .toggle("nascosto", stato.vista !== "citta");
+    var dentro = stato.vista === "citta";
+    document.getElementById("resa-mappa").classList.toggle("nascosto", !dentro);
+    // la scelta della zona vale dentro una citta' che abbia zone: fuori sparisce
+    document.getElementById("filtro-zona").classList
+      .toggle("nascosto", !dentro || !stato.citta || !stato.citta.campi_zona.length);
   }
   function tornaAtlante() {
     stato.vista = "atlante"; stato.citta = null; stato.fissata = null; stato.evidenziata = null;
