@@ -201,7 +201,25 @@ canvas.puntabile { cursor: pointer; }
   border: 1px solid var(--filo); border-radius: var(--r);
 }
 .tendina:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
-.azioni { display: flex; gap: 6px; pointer-events: auto; }
+.azioni { display: flex; gap: 6px; pointer-events: auto; position: relative; }
+/* Il pannello delle impostazioni pende dal suo pulsante: sono scelte di sistema
+   (tema, fondo, movimento), non scelte di analisi, e non devono occupare la colonna
+   di sinistra insieme alle metriche. */
+.impostazioni {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
+  width: min(330px, calc(100vw - 32px));
+  background: var(--pannello); border: 1px solid var(--filo); border-radius: var(--r);
+  box-shadow: var(--ombra); padding: 14px 16px; pointer-events: auto;
+  max-height: calc(100vh - 90px); overflow-y: auto;
+}
+.impostazioni .etichetta { margin-top: 14px; }
+.impostazioni .etichetta:first-child { margin-top: 0; }
+.impostazioni .nota { margin: 6px 0 0; }
+.impostazioni-chiudi {
+  position: absolute; top: 8px; right: 8px; border: 0; background: none;
+  color: var(--ink-3); font-size: 18px; line-height: 1; cursor: pointer; padding: 4px;
+}
+.impostazioni-chiudi:hover { color: var(--inchiostro); }
 .bottone {
   border: 1px solid var(--filo); background: var(--pannello); border-radius: var(--r);
   padding: 6px 12px; font-size: 12.5px; cursor: pointer; box-shadow: var(--ombra);
@@ -561,11 +579,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         <select id="filtro-zona" class="tendina" aria-label="Restringi la mappa a una zona"></select>
       </div>
       <div class="sezione-rail">
-        <div class="etichetta">Fondo cartografico</div>
-        <div class="scelta" id="scelta-fondo"></div>
-        <p class="nota" id="credito-fondo"></p>
-      </div>
-      <div class="sezione-rail">
         <div class="etichetta" id="etichetta-legenda">Legenda</div>
         <div class="rampa" id="rampa"></div>
         <div class="rampa-scala" id="rampa-scala"></div>
@@ -604,6 +617,21 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       </div>
       <div class="azioni">
         <button class="bottone" id="reimposta">Inquadra</button>
+        <button class="bottone" id="apri-impostazioni" type="button"
+                aria-expanded="false" aria-controls="impostazioni">Impostazioni</button>
+        <div class="impostazioni nascosto" id="impostazioni" role="dialog"
+             aria-label="Impostazioni">
+          <button class="impostazioni-chiudi" id="chiudi-impostazioni" type="button"
+                  aria-label="Chiudi le impostazioni">&times;</button>
+          <div class="etichetta">Tema</div>
+          <div class="scelta" id="scelta-tema"></div>
+          <div class="etichetta">Fondo cartografico</div>
+          <div class="scelta" id="scelta-fondo"></div>
+          <p class="nota" id="credito-fondo"></p>
+          <div class="etichetta">Movimento</div>
+          <div class="scelta" id="scelta-movimento"></div>
+          <p class="nota" id="nota-impostazioni"></p>
+        </div>
       </div>
     </div>
     <div class="sopra colonna-destra">
@@ -966,20 +994,42 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   /* ------------------------------------------------ fondo a tessere
      Le tessere si scaricano solo dentro una citta'. Senza rete non arriva niente e
      la mappa resta come prima, senza fondo: nessun errore visibile. */
+  /* Cinque fondi, tutti dallo stesso servizio Esri e **nessuno con una chiave**: la
+     pagina non deve chiedere credenziali a niente. Il grigio segue il tema, cosi' in
+     notturna la carta non resta bianca sotto le sezioni.
+
+     Lo zoom massimo e' quello verificato tessera per tessera, non quello dichiarato nei
+     metadati: le due tele grigie oltre il 16 restituiscono sempre lo stesso segnaposto. */
+  var ESRI = "https://services.arcgisonline.com/ArcGIS/rest/services/";
+  var CODA = "/MapServer/tile/{z}/{y}/{x}";
+  var FIRMA_CANVAS = "Esri, HERE, Garmin, FAO, NOAA, USGS";
+  var FIRMA_STRADE = "Esri, HERE, Garmin, USGS, NGCC, OpenStreetMap contributors";
+  var FIRMA_TOPO = "Esri, HERE, Garmin, Intermap, GEBCO, USGS, FAO, NPS, IGN";
+  var FIRMA_SAT = "Esri, Maxar, Earthstar Geographics";
   var FONDI = [
-    { id: "grigio", nome: "Esri Gray Canvas", max: 16,
-      url: "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/" +
-        "World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",
-      sopra: "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/" +
-        "World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}",
-      credito: 'Tessere <a href="https://www.arcgis.com/home/item.html' +
-        '?id=8b3d38c0819547faa83f7b7aca80bd76" target="_blank" ' +
-        'rel="noreferrer">Esri World Light Gray Canvas</a> (Esri, HERE, Garmin, ' +
-        'FAO, NOAA, USGS), scaricate una alla volta mentre navighi. Senza rete la ' +
-        'mappa resta senza fondo.' },
-    { id: "nessuno", nome: "Nessuno", url: null, max: 0,
-      credito: 'Nessun fondo: la pagina non fa richieste di rete.' }
+    { id: "grigio", nome: "Grigio", max: 16, segueTema: true, attribuzione: FIRMA_CANVAS,
+      chiaro: [ESRI + "Canvas/World_Light_Gray_Base" + CODA,
+               ESRI + "Canvas/World_Light_Gray_Reference" + CODA],
+      scuro: [ESRI + "Canvas/World_Dark_Gray_Base" + CODA,
+              ESRI + "Canvas/World_Dark_Gray_Reference" + CODA],
+      credito: "Tela grigia Esri, chiara o scura secondo il tema. Si ferma al livello 16." },
+    { id: "strade", nome: "Strade", max: 19, attribuzione: FIRMA_STRADE,
+      strati: [ESRI + "World_Street_Map" + CODA],
+      credito: "Carta stradale Esri, con piu' dettaglio ma piu' colore sotto le sezioni." },
+    { id: "rilievo", nome: "Rilievo", max: 19, attribuzione: FIRMA_TOPO,
+      strati: [ESRI + "World_Topo_Map" + CODA],
+      credito: "Carta topografica Esri, utile dove conta l'altimetria." },
+    { id: "satellite", nome: "Satellite", max: 19, attribuzione: FIRMA_SAT,
+      strati: [ESRI + "World_Imagery" + CODA],
+      credito: "Ortofoto Esri. Sotto le sezioni colorate si legge poco: conviene alzare la trasparenza." },
+    { id: "nessuno", nome: "Nessuno", max: 0, attribuzione: "",
+      strati: [],
+      credito: "Nessun fondo: la pagina non fa nessuna richiesta di rete." }
   ];
+  function stratiFondo(f) {
+    if (!f) return [];
+    return f.segueTema ? (scuro ? f.scuro : f.chiaro) : (f.strati || []);
+  }
   var tessere = {}, LATO_TESSERA = 256, MAX_TESSERE_FRAME = 240;
   function fondo() {
     for (var i = 0; i < FONDI.length; i++) if (FONDI[i].id === stato.fondo) return FONDI[i];
@@ -1001,16 +1051,15 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     return Math.max(0, Math.min(f.max, z));
   }
   function disegnaTessere() {
-    var f = fondo();
-    if (!f.url) return;
+    var f = fondo(), strati = stratiFondo(f);
+    if (!strati.length) return;
     var z = livelloTessere(f), n = Math.pow(2, z), lato = 360 / n, latoPx = lato * cam.scala;
     var alto = inverso(0, 0), basso = inverso(W, H);
     var i0 = Math.floor((alto[0] + 180) / lato), i1 = Math.floor((basso[0] + 180) / lato);
     var j0 = Math.max(0, Math.floor((180 - alto[1]) / lato));
     var j1 = Math.min(n - 1, Math.floor((180 - basso[1]) / lato));
     if ((i1 - i0 + 1) * (j1 - j0 + 1) > MAX_TESSERE_FRAME) return;
-    // due passate: prima la base grigia, poi lo strato trasparente con strade e nomi
-    var strati = f.sopra ? [f.url, f.sopra] : [f.url];
+    // due passate dove il fondo ha anche lo strato trasparente con strade e nomi
     for (var s = 0; s < strati.length; s++) {
       for (var i = i0; i <= i1; i++) {
         for (var j = j0; j <= j1; j++) {
@@ -1889,6 +1938,110 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     return (cacheTotali[l] = t);
   }
 
+  /* ------------------------------------------------ impostazioni di sistema
+     Tema, fondo cartografico e movimento: riguardano come si guarda la mappa, non cosa
+     si guarda. Le scelte restano in questo browser, in localStorage, e la pagina
+     funziona lo stesso se la memoria e' negata (finestra anonima, cookie bloccati). */
+  var CHIAVE_PREF = "atlante.impostazioni";
+  var pref = { tema: "auto", fondo: "grigio", movimento: "auto" };
+  (function () {
+    try {
+      var g = JSON.parse(localStorage.getItem(CHIAVE_PREF) || "{}");
+      if (g && typeof g === "object") {
+        if (g.tema) pref.tema = g.tema;
+        if (g.fondo) pref.fondo = g.fondo;
+        if (g.movimento) pref.movimento = g.movimento;
+      }
+    } catch (e) { /* memoria non disponibile: si resta sui valori d'apertura */ }
+  })();
+  function salvaPreferenze() {
+    try { localStorage.setItem(CHIAVE_PREF, JSON.stringify(pref)); } catch (e) {}
+  }
+
+  var TEMI = [
+    { id: "auto", nome: "Automatico", nota: "segue il sistema" },
+    { id: "light", nome: "Chiaro", nota: "" },
+    { id: "dark", nome: "Scuro", nota: "" }
+  ];
+  function applicaTema() {
+    var r = document.documentElement;
+    if (pref.tema === "auto") r.removeAttribute("data-theme");
+    else r.setAttribute("data-theme", pref.tema);
+    leggiColori();
+  }
+  var MOVIMENTI = [
+    { id: "auto", nome: "Come il sistema" },
+    { id: "pieno", nome: "Animato" },
+    { id: "ridotto", nome: "Ridotto" }
+  ];
+  function applicaMovimento() {
+    ridotto = pref.movimento === "ridotto" ||
+      (pref.movimento === "auto" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function chip(testo, attivo, titolo, poi) {
+    var b = document.createElement("button");
+    b.className = "chip"; b.type = "button"; b.textContent = testo;
+    if (titolo) b.title = titolo;
+    b.setAttribute("aria-pressed", String(!!attivo));
+    b.addEventListener("click", poi);
+    return b;
+  }
+
+  function costruisciImpostazioni() {
+    var el = document.getElementById("scelta-tema");
+    el.innerHTML = "";
+    TEMI.forEach(function (x) {
+      el.appendChild(chip(x.nome, pref.tema === x.id, x.nota, function () {
+        if (pref.tema === x.id) return;
+        pref.tema = x.id; salvaPreferenze();
+        applicaTema();
+        costruisciImpostazioni(); costruisciFondo();
+        if (stato.citta) aggiornaLegenda();
+        cache.chiave = null; disegna();
+      }));
+    });
+    var em = document.getElementById("scelta-movimento");
+    em.innerHTML = "";
+    MOVIMENTI.forEach(function (x) {
+      em.appendChild(chip(x.nome, pref.movimento === x.id, "", function () {
+        if (pref.movimento === x.id) return;
+        pref.movimento = x.id; salvaPreferenze();
+        applicaMovimento(); costruisciImpostazioni();
+      }));
+    });
+    document.getElementById("nota-impostazioni").textContent =
+      "Le scelte restano su questo browser. Nessun fondo richiede una chiave di accesso: " +
+      "le tessere arrivano dal servizio pubblico Esri, e con Nessuno la pagina non fa " +
+      "nessuna richiesta di rete.";
+  }
+
+  var pannelloAperto = false;
+  function apriImpostazioni(aperto) {
+    pannelloAperto = aperto;
+    document.getElementById("impostazioni").classList.toggle("nascosto", !aperto);
+    document.getElementById("apri-impostazioni")
+      .setAttribute("aria-expanded", String(aperto));
+    if (aperto) document.getElementById("chiudi-impostazioni").focus();
+  }
+  document.getElementById("apri-impostazioni").addEventListener("click", function (e) {
+    e.stopPropagation();
+    apriImpostazioni(!pannelloAperto);
+  });
+  document.getElementById("chiudi-impostazioni").addEventListener("click", function () {
+    apriImpostazioni(false);
+    document.getElementById("apri-impostazioni").focus();
+  });
+  document.getElementById("impostazioni").addEventListener("click", function (e) {
+    e.stopPropagation();
+  });
+  document.addEventListener("pointerdown", function (e) {
+    if (!pannelloAperto) return;
+    var t2 = e.target;
+    if (t2 && t2.closest && (t2.closest("#impostazioni") || t2.closest("#apri-impostazioni"))) return;
+    apriImpostazioni(false);
+  });
+
   function costruisciFondo() {
     var el = document.getElementById("scelta-fondo");
     el.innerHTML = "";
@@ -1899,6 +2052,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       b.addEventListener("click", function () {
         if (stato.fondo === f.id) return;
         stato.fondo = f.id;
+        pref.fondo = f.id; salvaPreferenze();
         costruisciFondo(); chiediDisegno();
       });
       el.appendChild(b);
@@ -1908,8 +2062,12 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   function aggiornaCredito() {
     var f = fondo();
     document.getElementById("credito-fondo").innerHTML = f.credito;
-    document.getElementById("credito-mappa").classList
-      .toggle("nascosto", !f.url || stato.vista !== "citta");
+    var cm = document.getElementById("credito-mappa");
+    cm.classList.toggle("nascosto", !stratiFondo(f).length || stato.vista !== "citta");
+    if (f.attribuzione) {
+      cm.innerHTML = 'Fondo <a href="https://www.esri.com/en-us/legal/terms/data-attributions"' +
+        ' target="_blank" rel="noreferrer">' + f.attribuzione + "</a>";
+    }
   }
 
   function aggiornaLegenda() {
@@ -2990,6 +3148,11 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   });
   document.addEventListener("keydown", function (e) {
     var dentroCampo = e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA");
+    if (e.key === "Escape" && pannelloAperto) {
+      e.stopPropagation(); apriImpostazioni(false);
+      document.getElementById("apri-impostazioni").focus();
+      return;
+    }
     if (e.key === "Escape" && !dentroCampo && stato.vista === "citta") tornaAtlante();
     if (e.key === "/" && !dentroCampo && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault(); inRic.focus(); inRic.select();
@@ -3000,7 +3163,9 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     }
   });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function () {
+    if (pref.tema !== "auto") return;     // la scelta esplicita vince sul sistema
     leggiColori();
+    cache.chiave = null;
     if (stato.vista === "citta") aggiornaLegenda();
     disegna();
   });
@@ -3015,6 +3180,11 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   }
 
   /* ------------------------------------------------ avvio */
+  stato.fondo = pref.fondo;
+  applicaTema();
+  applicaMovimento();
+  costruisciImpostazioni();
+  costruisciFondo();
   leggiColori();
   costruisciIndice();
   preparaRicerca();
