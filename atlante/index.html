@@ -184,6 +184,17 @@ canvas.puntabile { cursor: pointer; }
 }
 /* Il titolo sta sopra le tessere, che sono chiare in tutti e due i temi: senza una
    piastra dietro, nel tema scuro l'inchiostro chiaro finirebbe su un fondo chiaro. */
+/* Titolo e tornate stanno incolonnati a sinistra, i comandi di sistema a destra. */
+.colonna-alta { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+/* La tornata e' la scelta che si cambia piu' spesso: sta sulla mappa, non in fondo
+   alla colonna dell'analisi. La piastra dietro serve perche' i chip stanno sopra le
+   tessere, che sono chiare in tutti e due i temi. */
+.striscia-tornate {
+  display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto;
+  background: var(--carta); border: 1px solid var(--filo-tenue);
+  border-radius: var(--r); padding: 6px 7px; box-shadow: var(--ombra);
+  max-width: min(62ch, calc(100vw - 32px));
+}
 .intestazione-mappa {
   max-width: 46ch; pointer-events: auto;
   background: var(--carta); border: 1px solid var(--filo-tenue);
@@ -558,9 +569,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         <div id="scheda-sezione"></div>
       </div>
       <div class="sezione-rail nascosto" id="blocco-tornata">
-        <div class="etichetta">Tornata</div>
-        <div class="scelta" id="scelta-tornata"></div>
-        <div class="scelta nascosto" id="scelta-prospetto" style="margin-top:8px"></div>
+        <div class="etichetta" id="etichetta-prospetto">Prospetto</div>
+        <div class="scelta nascosto" id="scelta-prospetto"></div>
         <div class="scelta nascosto" id="scelta-municipio" style="margin-top:8px"></div>
         <p class="nota nascosto" id="avviso-tornata"></p>
       </div>
@@ -611,9 +621,13 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   <main class="palco" id="palco">
     <canvas id="tela"></canvas>
     <div class="sopra barra-alta">
-      <div class="intestazione-mappa">
-        <h2 id="titolo-mappa">Italia</h2>
-        <p id="didascalia-mappa">Le dieci città con geometria delle sezioni disponibile.</p>
+      <div class="colonna-alta">
+        <div class="intestazione-mappa">
+          <h2 id="titolo-mappa">Italia</h2>
+          <p id="didascalia-mappa">Le dieci città con geometria delle sezioni disponibile.</p>
+        </div>
+        <div class="striscia-tornate nascosto" id="striscia-tornate"
+             role="group" aria-label="Tornata elettorale"></div>
       </div>
       <div class="azioni">
         <button class="bottone" id="reimposta">Inquadra</button>
@@ -1696,15 +1710,19 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   function costruisciTornata() {
     var c = stato.citta, t = tornataCorrente();
+    // il riquadro a sinistra resta solo per il prospetto e per l'avviso della tornata
     document.getElementById("blocco-tornata").classList
-      .toggle("nascosto", c.tornate.length < 2 && t.prospetti.length < 2);
-    var el = document.getElementById("scelta-tornata");
+      .toggle("nascosto", t.prospetti.length < 2 && !t.avviso);
+    document.getElementById("etichetta-prospetto").textContent =
+      t.prospetti.length > 1 ? "Prospetto" : "Nota sulla tornata";
+    var el = document.getElementById("striscia-tornate");
     el.innerHTML = "";
     el.classList.toggle("nascosto", c.tornate.length < 2);
     c.tornate.forEach(function (x) {
       var b = document.createElement("button");
-      b.className = "chip"; b.type = "button"; b.textContent = etichettaTornata(x);
-      b.title = x.nome + ", " + x.data.split("-").reverse().join("/");
+      b.className = "chip"; b.type = "button"; b.textContent = etichettaBreve(x);
+      b.title = x.nome + ", " + x.data.split("-").reverse().join("/") +
+        (x.avviso ? ". " + x.avviso : "");
       b.setAttribute("aria-pressed", String(stato.tornata === x.id));
       b.addEventListener("click", function () {
         if (stato.tornata === x.id) return;
@@ -1785,6 +1803,10 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   }
   function etichettaTornata(x) {
     return x.nome.split(",")[0] + " " + x.data.slice(0, 4);
+  }
+  // sulla striscia in alto lo spazio e' poco: basta il tipo di voto e l'anno
+  function etichettaBreve(x) {
+    return x.nome.split(" ")[0].replace(",", "") + " " + x.data.slice(0, 4);
   }
   document.getElementById("confronto").addEventListener("change", function () {
     stato.confronto = this.value || null;
