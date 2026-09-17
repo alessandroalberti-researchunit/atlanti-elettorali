@@ -1,3 +1,11 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<!-- Senza questo i telefoni impaginano a 980px e poi rimpiccioliscono tutto; senza il
+     doctype qui sopra il browser sta in quirks mode. Mancavano tutti e due. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <title>Atlante delle sezioni elettorali</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -563,10 +571,97 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   .resa-slitta input[type="range"] { width: 96px; }
   .resa-tacche { height: 84px; }
 }
+/* ---------------------------------------------------------------- schermi medi
+   Sotto i 1200 pixel la colonna a 380 si prende piu' di un terzo di un tablet
+   coricato: la si stringe, tanto il contenuto e' lo stesso. */
+@media (max-width: 1200px) and (min-width: 901px) {
+  .guscio { grid-template-columns: 320px minmax(0, 1fr); }
+}
+
+/* ---------------------------------------------------------------- telefoni
+   Il riquadro sulla mappa tiene solo il titolo: le cifre della citta' e della sezione
+   stanno gia' nella colonna qui sotto, e ripeterle sopra una mappa alta 400 pixel
+   voleva dire coprirla quasi tutta. */
+@media (max-width: 700px) {
+  .barra-alta { padding: 8px 10px; gap: 8px; }
+  .intestazione-mappa { max-width: none; padding: 6px 9px; }
+  .intestazione-mappa .stat-riga,
+  .intestazione-mappa .riga-sezione { display: none; }
+  .intestazione-mappa h2 { font-size: 15px; }
+  .centro-alto { order: -1; flex-basis: 100%; margin-bottom: 4px; }
+  /* la striscia scorre di lato invece di stringersi e tagliare l'ultima tornata */
+  .centro-alto { justify-content: flex-start; overflow-x: auto; }
+  .striscia-tornate { flex: 0 0 auto; }
+  .tendina-mappa { min-width: 0; max-width: 46vw; }
+  /* la barra va su tre righe e i comandi finiscono da soli sulla terza: senza questo
+     restavano a sinistra, e il pannello delle impostazioni, ancorato al loro bordo
+     destro, usciva dallo schermo */
+  .azioni { margin-left: auto; }
+  /* e il pannello diventa un foglio che sale dal basso, cosi' non esce mai */
+  .impostazioni {
+    position: fixed; top: auto; bottom: 10px; left: 10px; right: 10px;
+    width: auto; max-height: 72dvh;
+  }
+  .rail { max-height: 48dvh; }
+  /* la slitta si accorcia ancora e il pannello sale meno: i comandi devono restare
+     sopra il pannello, che sul telefono viene su dal fondo, e prima lo toccavano */
+  .banner { max-height: 34%; }
+  .resa-slitta { height: 56px; }
+  .resa-slitta input[type="range"] { width: 56px; }
+  .resa-tacche { height: 44px; }
+  .titolo { font-size: 20px; }
+  .sezione-rail { padding: 11px 14px; }
+}
+
+/* Schermi minuscoli (i telefoni vecchi da 320 punti): alla mappa restano meno di 300
+   pixel e i comandi non ci stanno sopra il pannello. Sparisce il cursore della resa,
+   che e' una rifinitura; lo zoom, che serve, resta. */
+@media (max-width: 700px) and (max-height: 620px) {
+  .resa { display: none; }
+}
+
+/* ---------------------------------------------------------------- poca altezza
+   Telefono coricato: impilando mappa e colonna alla mappa restavano 211 pixel. Con
+   poca altezza conviene tornare affiancati, con la colonna stretta. */
+@media (max-height: 560px) and (min-width: 560px) {
+  .guscio { grid-template-columns: 260px minmax(0, 1fr); grid-template-rows: none; }
+  .rail {
+    order: 1; max-height: none;
+    border-right: 1px solid var(--filo); border-top: 0;
+  }
+  .palco { order: 2; }
+  .banner {
+    top: 52px; bottom: 10px; left: auto; right: 10px; width: 210px; max-height: none;
+  }
+  .palco.con-banner .colonna-destra { right: 232px; top: auto; bottom: 14px; }
+  .intestazione-mappa .stat-riga,
+  .intestazione-mappa .riga-sezione { display: none; }
+  /* il pannello sta a destra: il riquadro non deve arrivarci sotto */
+  .intestazione-mappa { max-width: 28ch; }
+  .testata { padding: 12px 14px 10px; }
+  .titolo { font-size: 18px; }
+}
+
+/* ---------------------------------------------------------------- dito invece di mouse
+   Su schermo a tocco i bersagli piccoli non si prendono: chip e pulsanti crescono,
+   senza cambiare niente per chi usa il mouse. */
+@media (pointer: coarse) {
+  .chip { padding: 7px 12px; }
+  .striscia-tornate .chip { padding: 6px 11px; font-size: 12px; }
+  .bottone { padding: 8px 13px; }
+  .tendina { padding: 9px 8px; }
+  .ris { padding: 11px 12px; }
+  .voce { padding: 12px 14px; }
+  .cand { padding: 9px 0 10px; }
+  .sez-riga { padding: 9px 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
 </style>
+</head>
+<body>
 
 <div class="guscio" id="guscio">
   <aside class="rail">
@@ -3373,3 +3468,5 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   disegna();
 })();
 </script>
+</body>
+</html>
