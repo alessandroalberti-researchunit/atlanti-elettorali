@@ -95,11 +95,11 @@ button { font: inherit; color: inherit; }
 }
 .titolo {
   font-family: "Bodoni Moda", "Times New Roman", serif;
-  font-size: 30px; line-height: 1.06; letter-spacing: -.01em;
+  font-size: 24px; line-height: 1.08; letter-spacing: -.01em;
 }
 .sottotitolo { color: var(--ink-2); font-size: 12.5px; margin-top: 8px; max-width: 34ch; }
 
-.sezione-rail { padding: 16px 22px; border-bottom: 1px solid var(--filo-tenue); }
+.sezione-rail { padding: 13px 18px; border-bottom: 1px solid var(--filo-tenue); }
 .etichetta {
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
@@ -149,9 +149,9 @@ button { font: inherit; color: inherit; }
 .stat-griglia { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 12px; }
 .stat b {
   display: block; font-family: "IBM Plex Mono", monospace; font-weight: 500;
-  font-size: 19px; font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  font-size: 16px; font-variant-numeric: tabular-nums; letter-spacing: -.02em;
 }
-.stat span { font-size: 11px; color: var(--ink-3); }
+.stat span { font-size: 10.5px; color: var(--ink-3); }
 
 /* tabella zone */
 table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
@@ -179,49 +179,57 @@ canvas.puntabile { cursor: pointer; }
 
 .sopra { position: absolute; pointer-events: none; }
 .barra-alta {
-  top: 0; left: 0; right: 0; padding: 16px 20px;
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  top: 0; left: 0; right: 0; padding: 12px 16px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
 }
 /* Il titolo sta sopra le tessere, che sono chiare in tutti e due i temi: senza una
    piastra dietro, nel tema scuro l'inchiostro chiaro finirebbe su un fondo chiaro. */
 /* La tornata e' la scelta che si cambia piu' spesso: sta sulla mappa, in mezzo fra il
-   riquadro della citta' e i comandi di sistema. Si centra nello spazio fra i due e non
-   sulla meta' dello schermo: cosi' non ci finisce mai sopra, qualunque sia la lunghezza
-   del titolo. La piastra dietro serve perche' i chip stanno sopra le tessere, che sono
-   chiare in tutti e due i temi. */
-.barra-alta { flex-wrap: wrap; }
-.intestazione-mappa { flex: 0 1 auto; }
+   riquadro della citta' e i comandi di sistema, e **resta sempre sulla prima riga**.
+   Prima, quando i tre pezzi non ci stavano, scendeva su una riga sua: con il riquadro
+   delle cifre diventato piu' alto quella riga finiva in mezzo alla mappa, e sembrava un
+   elemento alla deriva. Ora la barra non va a capo e a stringersi e' il titolo. */
+.barra-alta { flex-wrap: nowrap; }
+.intestazione-mappa { flex: 0 1 auto; min-width: 0; }
 .centro-alto { flex: 1 1 auto; display: flex; justify-content: center; min-width: 0; }
 .striscia-tornate {
-  display: flex; flex-wrap: wrap; gap: 6px; pointer-events: auto;
+  display: flex; flex-wrap: nowrap; gap: 4px; pointer-events: auto;
   background: var(--carta); border: 1px solid var(--filo-tenue);
-  border-radius: var(--r); padding: 6px 7px; box-shadow: var(--ombra);
+  border-radius: var(--r); padding: 4px 5px; box-shadow: var(--ombra);
   max-width: 100%;
 }
-/* Quando i tre pezzi non ci stanno in fila la striscia scende su una riga sua, sempre
-   centrata. La soglia e' alta apposta: lasciata piu' in basso, a andare a capo erano i
-   comandi di sistema, che finivano a sinistra sotto il titolo. Tiene conto anche della
-   tendina delle zone, che allarga quella colonna oltre i due pulsanti. */
-@media (max-width: 1560px) {
-  .centro-alto { order: 3; flex-basis: 100%; margin-top: 8px; }
+.striscia-tornate .chip { padding: 3px 9px; font-size: 11.5px; white-space: nowrap; }
+/* Sotto questa larghezza i tre pezzi non ci stanno piu' in fila. La striscia prende una
+   riga sua, ma **sopra** il riquadro e non sotto: sotto finiva in mezzo alla mappa e
+   sembrava alla deriva. */
+@media (max-width: 1440px) {
+  .barra-alta { flex-wrap: wrap; }
+  .centro-alto { order: -1; flex-basis: 100%; margin-bottom: 4px; }
 }
 /* Le cifre stanno nel riquadro sulla mappa, non piu' in una sezione della colonna:
-   si leggono dove si guarda, e cambiano a ogni clic su una sezione. */
-.stat-riga { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 10px; }
+   si leggono dove si guarda, e cambiano a ogni clic su una sezione. Tenute piccole:
+   il riquadro sta sopra la mappa e ogni pixel in piu' e' mappa che non si vede. */
+.stat-riga { display: flex; flex-wrap: wrap; gap: 5px 13px; margin-top: 7px; }
+.intestazione-mappa .stat b { font-size: 14px; }
+.intestazione-mappa .stat span { font-size: 10px; }
 .riga-sezione {
-  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--filo-tenue);
+  margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--filo-tenue);
 }
-.riga-sezione .sez-titolo { font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+.riga-sezione .sez-titolo { font-size: 11.5px; color: var(--ink-2); margin-bottom: 6px; }
 .riga-sezione .sez-titolo b { color: var(--inchiostro); }
 .intestazione-mappa {
-  max-width: 52ch; pointer-events: auto;
+  max-width: 44ch; pointer-events: auto;
   background: var(--carta); border: 1px solid var(--filo-tenue);
-  border-radius: var(--r); padding: 8px 12px; box-shadow: var(--ombra);
+  border-radius: var(--r); padding: 7px 11px; box-shadow: var(--ombra);
 }
 .intestazione-mappa h2 {
-  font-family: "Bodoni Moda", serif; font-size: 22px; letter-spacing: -.01em;
+  font-family: "Bodoni Moda", serif; font-size: 17px; letter-spacing: -.01em;
 }
-.intestazione-mappa p { margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
+/* la didascalia e' la prima a cedere quando la barra si stringe: una riga sola */
+.intestazione-mappa p {
+  margin: 3px 0 0; font-size: 11px; color: var(--ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 /* La tendina del filtro deve reggere sia i 6 quartieri di Bologna sia le 94 zone
    statistiche di Torino: con i chip la seconda diventerebbe un muro. */
 .tendina {
@@ -232,12 +240,12 @@ canvas.puntabile { cursor: pointer; }
 .tendina:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
 .azioni {
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
-  pointer-events: auto; position: relative;
+  pointer-events: auto; position: relative; z-index: 6;
 }
 .azioni-riga { display: flex; gap: 6px; }
 /* La scelta della zona sta sulla mappa sotto i due pulsanti: restringe la vista, quindi
    e' un comando della mappa e non dell'analisi. */
-.tendina-mappa { width: auto; min-width: 190px; max-width: min(320px, 42vw); }
+.tendina-mappa { width: auto; min-width: 170px; max-width: min(280px, 38vw); font-size: 12px; }
 /* Il pannello delle impostazioni pende dal suo pulsante: sono scelte di sistema
    (tema, fondo, movimento), non scelte di analisi, e non devono occupare la colonna
    di sinistra insieme alle metriche. */
@@ -258,7 +266,7 @@ canvas.puntabile { cursor: pointer; }
 .impostazioni-chiudi:hover { color: var(--inchiostro); }
 .bottone {
   border: 1px solid var(--filo); background: var(--pannello); border-radius: var(--r);
-  padding: 6px 12px; font-size: 12.5px; cursor: pointer; box-shadow: var(--ombra);
+  padding: 5px 10px; font-size: 12px; cursor: pointer; box-shadow: var(--ombra);
 }
 .bottone:hover { border-color: var(--ink-3); }
 .bottone:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
@@ -487,7 +495,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
    restringe, e la tela non ha bisogno di essere ridimensionata. */
 .banner {
   position: absolute; z-index: 4; pointer-events: auto;
-  top: 72px; right: 20px; bottom: 14px; width: 288px;
+  top: 96px; right: 16px; bottom: 12px; width: 248px;
   background: var(--pannello); border: 1px solid var(--filo);
   border-radius: var(--r); box-shadow: var(--ombra);
   display: flex; flex-direction: column; min-height: 0;
@@ -496,34 +504,34 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 /* con il banner aperto i comandi si spostano alla sua sinistra, restano raggiungibili */
 .palco.con-banner .colonna-destra { right: 324px; }
 .banner-testa {
-  padding: 13px 16px 10px; border-bottom: 1px solid var(--filo-tenue);
+  padding: 10px 13px 8px; border-bottom: 1px solid var(--filo-tenue);
   position: sticky; top: 0; background: var(--pannello); z-index: 1;
 }
 .banner-titolo {
-  font-family: "Bodoni Moda", serif; font-size: 18px; letter-spacing: -.01em;
+  font-family: "Bodoni Moda", serif; font-size: 15px; letter-spacing: -.01em;
   display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
 }
 .banner-titolo span {
   font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ink-3);
   letter-spacing: .06em; font-variant-numeric: tabular-nums;
 }
-.banner-dove { font-size: 11.5px; color: var(--ink-2); margin-top: 5px; }
+.banner-dove { font-size: 11px; color: var(--ink-2); margin-top: 4px; }
 .banner-dove b { font-weight: 500; color: var(--inchiostro); }
 .banner-dove .simbolo { vertical-align: -.28em; margin: 0 2px 0 3px; }
-.banner-corpo { padding: 8px 16px 16px; }
+.banner-corpo { padding: 6px 13px 13px; }
 .banner-vuoto { padding: 18px; font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
 
 /* una riga per candidato: contrassegno, nome, cifra, barra sotto */
 .cand {
   display: block; width: 100%; text-align: left; cursor: pointer;
   background: none; border: 0; border-bottom: 1px solid var(--filo-tenue);
-  padding: 7px 0 8px;
+  padding: 5px 0 6px;
 }
 .cand:hover, .cand:focus-visible { background: var(--pannello); outline: none; }
 .cand[aria-pressed="true"] { background: var(--pannello); box-shadow: inset 2px 0 0 var(--accento); }
 .cand-riga { display: flex; align-items: center; gap: 6px; }
 .cand-nome {
-  flex: 1 1 auto; min-width: 0; font-size: 12px;
+  flex: 1 1 auto; min-width: 0; font-size: 11.5px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .cand-cifra {
