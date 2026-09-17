@@ -199,7 +199,12 @@ canvas.puntabile { cursor: pointer; }
    elemento alla deriva. Ora la barra non va a capo e a stringersi e' il titolo. */
 .barra-alta { flex-wrap: nowrap; }
 .intestazione-mappa { flex: 0 1 auto; min-width: 0; }
-.centro-alto { flex: 1 1 auto; display: flex; justify-content: center; min-width: 0; }
+/* min-content invece di 0: cosi' la striscia non si lascia comprimere (i chip
+   hanno white-space nowrap e il testo verrebbe tagliato) e a cedere e' il
+   riquadro della citta', che ha la didascalia con i puntini. */
+.centro-alto {
+  flex: 1 1 auto; display: flex; justify-content: center; min-width: min-content;
+}
 .striscia-tornate {
   display: flex; flex-wrap: nowrap; gap: 4px; pointer-events: auto;
   background: var(--carta); border: 1px solid var(--filo-tenue);
@@ -210,7 +215,7 @@ canvas.puntabile { cursor: pointer; }
 /* Sotto questa larghezza i tre pezzi non ci stanno piu' in fila. La striscia prende una
    riga sua, ma **sopra** il riquadro e non sotto: sotto finiva in mezzo alla mappa e
    sembrava alla deriva. */
-@media (max-width: 1440px) {
+@media (max-width: 1180px) {
   .barra-alta { flex-wrap: wrap; }
   .centro-alto { order: -1; flex-basis: 100%; margin-bottom: 4px; }
 }
@@ -248,36 +253,63 @@ canvas.puntabile { cursor: pointer; }
 .tendina:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
 .azioni {
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
-  pointer-events: auto; position: relative; z-index: 6;
+  pointer-events: auto; position: relative; z-index: 6; min-width: 0;
 }
 .azioni-riga { display: flex; gap: 6px; }
-/* La scelta della zona sta sulla mappa sotto i due pulsanti: restringe la vista, quindi
-   e' un comando della mappa e non dell'analisi. */
-.tendina-mappa { width: auto; min-width: 170px; max-width: min(280px, 38vw); font-size: 12px; }
+/* La scelta della zona sta sulla mappa sotto i tre tasti: restringe la vista, quindi
+   e' un comando della mappa e non dell'analisi.
+   Larghezza tenuta corta e cedevole. Con "Tutta la citta', 2597 sezioni" per esteso la
+   tendina vuole 247 pixel, e siccome sta sotto i tasti e' lei a dire quanto e' larga
+   tutta la colonna di destra: con quei 247 i tre pezzi della barra non stavano su una
+   riga sotto i 1450 pixel di finestra, e la striscia delle tornate finiva da sola in
+   mezzo alla mappa. Con il tetto a 200 e la possibilita' di stringersi, una riga sola
+   basta gia' a 1200. */
+.tendina-mappa { width: 100%; min-width: 140px; max-width: 200px; font-size: 12px; }
 /* Il pannello delle impostazioni pende dal suo pulsante: sono scelte di sistema
    (tema, fondo, movimento), non scelte di analisi, e non devono occupare la colonna
    di sinistra insieme alle metriche. */
-.impostazioni {
+.pannello-mappa {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 30;
-  width: min(330px, calc(100vw - 32px));
+  width: min(340px, calc(100vw - 32px));
   background: var(--pannello); border: 1px solid var(--filo); border-radius: var(--r);
   box-shadow: var(--ombra); padding: 14px 16px; pointer-events: auto;
   max-height: calc(100vh - 90px); overflow-y: auto;
 }
-.impostazioni .etichetta { margin-top: 14px; }
-.impostazioni .etichetta:first-child { margin-top: 0; }
-.impostazioni .nota { margin: 6px 0 0; }
-.impostazioni-chiudi {
+.pannello-mappa .etichetta { margin-top: 14px; }
+.pannello-mappa .etichetta:first-child { margin-top: 0; }
+.pannello-mappa .nota { margin: 6px 0 0; }
+.pannello-chiudi {
   position: absolute; top: 8px; right: 8px; border: 0; background: none;
   color: var(--ink-3); font-size: 18px; line-height: 1; cursor: pointer; padding: 4px;
+  z-index: 1;
 }
-.impostazioni-chiudi:hover { color: var(--inchiostro); }
+.pannello-chiudi:hover { color: var(--inchiostro); }
 .bottone {
   border: 1px solid var(--filo); background: var(--pannello); border-radius: var(--r);
   padding: 5px 10px; font-size: 12px; cursor: pointer; box-shadow: var(--ombra);
 }
 .bottone:hover { border-color: var(--ink-3); }
 .bottone:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
+/* I tre comandi della mappa (inquadra, cerca, impostazioni) sono icone. A parole si
+   prendevano quasi un quarto della barra e la striscia delle tornate era costretta su
+   una riga sua, che finiva in mezzo alla mappa. Il nome per intero compare passandoci
+   sopra con il cursore, e anche quando il tasto prende il fuoco da tastiera. */
+.tasto-icona {
+  width: 32px; height: 32px; padding: 0; color: var(--inchiostro);
+  display: inline-flex; align-items: center; justify-content: center; position: relative;
+}
+.tasto-icona svg { width: 17px; height: 17px; display: block; }
+/* la targhetta cresce verso sinistra: i tre tasti stanno al bordo destro della mappa e
+   una targhetta centrata sull'ultimo uscirebbe dallo schermo */
+.tasto-icona::after {
+  content: attr(data-nome); position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--pannello); color: var(--inchiostro);
+  border: 1px solid var(--filo); border-radius: var(--r);
+  padding: 3px 7px; font-size: 11px; line-height: 1.4; white-space: nowrap;
+  box-shadow: var(--ombra); opacity: 0; pointer-events: none; z-index: 40;
+  transition: opacity .12s ease;
+}
+.tasto-icona:hover::after, .tasto-icona:focus-visible::after { opacity: 1; }
 
 .suggerimento {
   position: absolute; z-index: 5; pointer-events: none; opacity: 0;
@@ -380,6 +412,7 @@ td .simbolo { vertical-align: -.28em; margin-right: 5px; }
 }
 .ris-vuoto { padding: 9px 10px; font-size: 12px; color: var(--ink-3); }
 .aiuto-ricerca { margin: 8px 0 0; }
+.pannello-mappa .risultati { max-height: 46vh; }
 kbd {
   font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--ink-2);
   border: 1px solid var(--filo); border-radius: 2px; padding: 0 4px; background: var(--pannello);
@@ -584,21 +617,28 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
    voleva dire coprirla quasi tutta. */
 @media (max-width: 700px) {
   .barra-alta { padding: 8px 10px; gap: 8px; }
-  .intestazione-mappa { max-width: none; padding: 6px 9px; }
+  /* Riquadro e comandi si dividono la riga: 58 e 42 per cento, il vuoto di 8 tolto al
+     primo, cosi' la somma resta dentro la barra a qualunque larghezza e non si va a
+     capo. Prima la barra andava su tre righe, e su un telefono le tre righe si
+     mangiavano un settimo della mappa. La didascalia si accorcia con i puntini. */
+  .intestazione-mappa { max-width: calc(58% - 8px); padding: 6px 9px; }
+  .azioni { max-width: 42%; }
   .intestazione-mappa .stat-riga,
   .intestazione-mappa .riga-sezione { display: none; }
   .intestazione-mappa h2 { font-size: 15px; }
   .centro-alto { order: -1; flex-basis: 100%; margin-bottom: 4px; }
-  /* la striscia scorre di lato invece di stringersi e tagliare l'ultima tornata */
-  .centro-alto { justify-content: flex-start; overflow-x: auto; }
+  /* la striscia scorre di lato invece di stringersi e tagliare l'ultima tornata.
+     Qui min-width torna a zero: le quattro tornate per esteso vogliono 410 pixel e su
+     un telefono da 360 uscirebbero dallo schermo, portandosi dietro tutta la pagina. */
+  .centro-alto { justify-content: flex-start; overflow-x: auto; min-width: 0; }
   .striscia-tornate { flex: 0 0 auto; }
-  .tendina-mappa { min-width: 0; max-width: 46vw; }
+  .tendina-mappa { min-width: 0; max-width: 100%; }
   /* la barra va su tre righe e i comandi finiscono da soli sulla terza: senza questo
      restavano a sinistra, e il pannello delle impostazioni, ancorato al loro bordo
      destro, usciva dallo schermo */
   .azioni { margin-left: auto; }
-  /* e il pannello diventa un foglio che sale dal basso, cosi' non esce mai */
-  .impostazioni {
+  /* e i pannelli diventano fogli che salgono dal basso, cosi' non escono mai */
+  .pannello-mappa {
     position: fixed; top: auto; bottom: 10px; left: 10px; right: 10px;
     width: auto; max-height: 72dvh;
   }
@@ -636,8 +676,12 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   .palco.con-banner .colonna-destra { right: 232px; top: auto; bottom: 14px; }
   .intestazione-mappa .stat-riga,
   .intestazione-mappa .riga-sezione { display: none; }
-  /* il pannello sta a destra: il riquadro non deve arrivarci sotto */
-  .intestazione-mappa { max-width: 28ch; }
+  /* il pannello sta a destra: il riquadro non deve arrivarci sotto, e deve lasciare
+     il posto ai comandi sulla stessa riga */
+  .intestazione-mappa { max-width: min(28ch, calc(58% - 8px)); }
+  .azioni { max-width: 42%; }
+  /* con la colonna a fianco alla mappa restano meno di 400 pixel: la striscia scorre */
+  .centro-alto { justify-content: flex-start; overflow-x: auto; min-width: 0; }
   .testata { padding: 12px 14px 10px; }
   .titolo { font-size: 18px; }
 }
@@ -649,6 +693,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   .chip { padding: 7px 12px; }
   .striscia-tornate .chip { padding: 6px 11px; font-size: 12px; }
   .bottone { padding: 8px 13px; }
+  .tasto-icona { width: 38px; height: 38px; padding: 0; }
   .tendina { padding: 9px 8px; }
   .ris { padding: 11px 12px; }
   .voce { padding: 12px 14px; }
@@ -671,22 +716,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       <p class="sottotitolo" id="sottotitolo">
         Sezione per sezione. Dieci città alle europee 2024; per Roma anche le comunali
         2021, le politiche 2022 e le regionali 2023, con il confronto fra tornate.
-      </p>
-    </div>
-
-    <div class="sezione-rail">
-      <div class="etichetta">Cerca</div>
-      <div class="ricerca">
-        <input id="ricerca" type="text" autocomplete="off" spellcheck="false"
-               placeholder="Numero di sezione, citt&agrave; o zona"
-               aria-label="Cerca una sezione, una citt&agrave; o una zona"
-               role="combobox" aria-expanded="false" aria-controls="risultati" aria-autocomplete="list">
-        <button class="pulisci nascosto" id="pulisci" type="button" aria-label="Cancella la ricerca">&times;</button>
-      </div>
-      <div class="risultati nascosto" id="risultati" role="listbox" aria-label="Risultati della ricerca"></div>
-      <p class="nota aiuto-ricerca">
-        <b>Roma 1234</b> per una sezione precisa, <b>1234</b> per lo stesso numero in tutte le citt&agrave;,
-        <b>Brera</b> per una zona. <kbd>/</kbd> porta il cursore qui.
       </p>
     </div>
 
@@ -776,16 +805,39 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       </div>
       <div class="azioni">
         <div class="azioni-riga">
-          <button class="bottone" id="reimposta">Inquadra</button>
-          <button class="bottone" id="apri-impostazioni" type="button"
-                  aria-expanded="false" aria-controls="impostazioni">Impostazioni</button>
+          <button class="bottone tasto-icona" id="reimposta" type="button"
+                  data-nome="Inquadra" aria-label="Inquadra"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="7"></circle><path d="M12 1.8v3.6M12 18.6v3.6M1.8 12h3.6M18.6 12h3.6"></path></svg></button>
+          <button class="bottone tasto-icona" id="apri-cerca" type="button"
+                  data-nome="Cerca" aria-label="Cerca"
+                  aria-expanded="false" aria-controls="pannello-cerca"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="10.6" cy="10.6" r="6.6"></circle><path d="M15.4 15.4 21 21"></path></svg></button>
+          <button class="bottone tasto-icona" id="apri-impostazioni" type="button"
+                  data-nome="Impostazioni" aria-label="Impostazioni"
+                  aria-expanded="false" aria-controls="impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3.3"></circle><path d="M18.3 14.3 L21.3 14 L21.3 10 L18.3 9.7 L18.1 9.2 L20 6.8 L17.2 4 L14.8 5.9 L14.3 5.7 L14 2.7 L10 2.7 L9.7 5.7 L9.2 5.9 L6.8 4 L4 6.8 L5.9 9.2 L5.7 9.7 L2.7 10 L2.7 14 L5.7 14.3 L5.9 14.8 L4 17.2 L6.8 20 L9.2 18.1 L9.7 18.3 L10 21.3 L14 21.3 L14.3 18.3 L14.8 18.1 L17.2 20 L20 17.2 L18.1 14.8 Z"></path></svg></button>
         </div>
         <select id="filtro-zona" class="tendina tendina-mappa nascosto"
                 aria-label="Restringi la mappa a una zona"
                 title="Restringe mappa, classifica, mediana, tabella e flussi alle sole sezioni della zona scelta."></select>
-        <div class="impostazioni nascosto" id="impostazioni" role="dialog"
+        <div class="pannello-mappa nascosto" id="pannello-cerca" role="dialog"
+             aria-label="Cerca">
+          <button class="pannello-chiudi" id="chiudi-cerca" type="button"
+                  aria-label="Chiudi la ricerca">&times;</button>
+          <div class="etichetta">Cerca</div>
+          <div class="ricerca">
+            <input id="ricerca" type="text" autocomplete="off" spellcheck="false"
+                   placeholder="Numero di sezione, citt&agrave; o zona"
+                   aria-label="Cerca una sezione, una citt&agrave; o una zona"
+                   role="combobox" aria-expanded="false" aria-controls="risultati" aria-autocomplete="list">
+            <button class="pulisci nascosto" id="pulisci" type="button" aria-label="Cancella la ricerca">&times;</button>
+          </div>
+          <div class="risultati nascosto" id="risultati" role="listbox" aria-label="Risultati della ricerca"></div>
+          <p class="nota aiuto-ricerca">
+            <b>Roma 1234</b> per una sezione precisa, <b>1234</b> per lo stesso numero in tutte le citt&agrave;,
+            <b>Brera</b> per una zona. <kbd>/</kbd> apre questo riquadro.
+          </p>
+        </div>
+        <div class="pannello-mappa impostazioni nascosto" id="impostazioni" role="dialog"
              aria-label="Impostazioni">
-          <button class="impostazioni-chiudi" id="chiudi-impostazioni" type="button"
+          <button class="pannello-chiudi" id="chiudi-impostazioni" type="button"
                   aria-label="Chiudi le impostazioni">&times;</button>
           <div class="etichetta">Tema</div>
           <div class="scelta" id="scelta-tema"></div>
@@ -2194,6 +2246,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   var pannelloAperto = false;
   function apriImpostazioni(aperto) {
     pannelloAperto = aperto;
+    if (aperto) apriCerca(false);            // un pannello per volta, si sovrapporrebbero
     document.getElementById("impostazioni").classList.toggle("nascosto", !aperto);
     document.getElementById("apri-impostazioni")
       .setAttribute("aria-expanded", String(aperto));
@@ -2215,6 +2268,40 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var t2 = e.target;
     if (t2 && t2.closest && (t2.closest("#impostazioni") || t2.closest("#apri-impostazioni"))) return;
     apriImpostazioni(false);
+  });
+
+  /* La ricerca sta nello stesso posto: un pannello appeso al suo tasto sulla mappa.
+     Era una sezione della colonna di sinistra, ma la si usa guardando la mappa, e in
+     colonna si prendeva lo spazio che serve alle metriche. */
+  var cercaAperta = false;
+  function apriCerca(aperto) {
+    cercaAperta = aperto;
+    document.getElementById("pannello-cerca").classList.toggle("nascosto", !aperto);
+    document.getElementById("apri-cerca").setAttribute("aria-expanded", String(aperto));
+    if (aperto) {
+      apriImpostazioni(false);
+      var campo = document.getElementById("ricerca");
+      campo.focus(); campo.select();
+    } else {
+      chiudiRisultati();
+    }
+  }
+  document.getElementById("apri-cerca").addEventListener("click", function (e) {
+    e.stopPropagation();
+    apriCerca(!cercaAperta);
+  });
+  document.getElementById("chiudi-cerca").addEventListener("click", function () {
+    apriCerca(false);
+    document.getElementById("apri-cerca").focus();
+  });
+  document.getElementById("pannello-cerca").addEventListener("click", function (e) {
+    e.stopPropagation();
+  });
+  document.addEventListener("pointerdown", function (e) {
+    if (!cercaAperta) return;
+    var t3 = e.target;
+    if (t3 && t3.closest && (t3.closest("#pannello-cerca") || t3.closest("#apri-cerca"))) return;
+    apriCerca(false);
   });
 
   function costruisciFondo() {
@@ -3239,7 +3326,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     } else if (e.key === "Escape") {
       e.stopPropagation();
       if (elRis.classList.contains("nascosto")) {
-        inRic.value = ""; btPulisci.classList.add("nascosto"); inRic.blur();
+        inRic.value = ""; btPulisci.classList.add("nascosto");
+        apriCerca(false); document.getElementById("apri-cerca").focus();
       } else chiudiRisultati();
     }
   });
@@ -3427,9 +3515,14 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       document.getElementById("apri-impostazioni").focus();
       return;
     }
+    if (e.key === "Escape" && cercaAperta && !dentroCampo) {
+      e.stopPropagation(); apriCerca(false);
+      document.getElementById("apri-cerca").focus();
+      return;
+    }
     if (e.key === "Escape" && !dentroCampo && stato.vista === "citta") tornaAtlante();
     if (e.key === "/" && !dentroCampo && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      e.preventDefault(); inRic.focus(); inRic.select();
+      e.preventDefault(); apriCerca(true);
     }
     if (!dentroCampo && !e.ctrlKey && !e.metaKey && !e.altKey) {
       if (e.key === "+" || e.key === "=") { e.preventDefault(); zooma(2); }
