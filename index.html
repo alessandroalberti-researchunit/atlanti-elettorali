@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Atlanti elettorali, sezione per sezione</title>
-<meta name="description" content="Mappe navigabili delle sezioni elettorali italiane: europee 2024 in dieci citt&agrave; e comunali di Roma 2021.">
+<meta name="description" content="Mappe navigabili delle sezioni elettorali di Roma, Milano, Bologna e Genova: europee 2024 e altre tornate dal 2021 al 2025.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -105,18 +105,19 @@ footer { margin-top: 40px; border-top: 1px solid var(--filo-tenue); padding-top:
   <div class="carte">
     <a class="carta" href="atlante/" style="grid-column:1/-1">
       <h2>Atlante delle sezioni</h2>
-      <div class="data">Dieci citt&agrave;, e a Roma quattro tornate dal 2021 al 2024</div>
+      <div class="data">Roma, Milano, Bologna e Genova, da quattro a cinque tornate dal 2021 al 2025</div>
       <p>
-        Le europee 2024 in dieci citt&agrave;; per Roma anche comunali 2021, politiche 2022 e
-        regionali 2023, sulle stesse sezioni. Si cambia tornata tenendo ferma la sezione,
-        si confrontano due voti in punti di differenza, si legge la traiettoria di una
-        singola sezione e si guardano i flussi stimati per citt&agrave; e per municipio.
+        Le europee 2024 e le altre tornate dal 2021 per cui i Comuni pubblicano i dati di
+        sezione: comunali, politiche 2022 e regionali, sulle stesse sezioni (Genova ha anche
+        le comunali 2025). Si cambia tornata tenendo ferma la sezione, si confrontano due
+        voti in punti di differenza, si legge la traiettoria di una singola sezione e si
+        accostano i risultati a dati del territorio: urbani, rischio idrogeologico, calore.
       </p>
       <div class="cifre">
-        <span class="cifra"><b>7.946</b><span>sezioni</span></span>
-        <span class="cifra"><b>4</b><span>tornate a Roma</span></span>
-        <span class="cifra"><b>83</b><span>liste in 12 aree</span></span>
-        <span class="cifra"><b>3.396</b><span>candidati</span></span>
+        <span class="cifra"><b>4.925</b><span>sezioni</span></span>
+        <span class="cifra"><b>4</b><span>citt&agrave;</span></span>
+        <span class="cifra"><b>17</b><span>tornate, citt&agrave; per citt&agrave;</span></span>
+        <span class="cifra"><b>2.422</b><span>candidati</span></span>
       </div>
     </a>
   </div>
@@ -157,19 +158,13 @@ footer { margin-top: 40px; border-top: 1px solid var(--filo-tenue); padding-top:
     </a>
   </div>
 
-  <h3>Confronti e flussi</h3>
+  <h3>Confronti</h3>
   <p class="nota">
     Il confronto fra tornate lavora su <b>aree politiche</b>, non sulle singole liste: le
-    liste cambiano nome a ogni voto, e ricondurle ad aree &egrave; una scelta editoriale
-    dichiarata, non un dato. La mappatura delle 83 liste alle 12 aree &egrave; un file che
-    si pu&ograve; aprire e correggere.
-  </p>
-  <p class="nota">
-    I <b>flussi</b> sono stime per inferenza ecologica, valide per un aggregato (la citt&agrave;
-    o un municipio) e <b>mai per una singola sezione</b>: da quote aggregate i passaggi
-    individuali non si vedono, e una sezione &egrave; un'osservazione sola. Per la singola
-    sezione la mappa mostra le quote osservate nelle quattro tornate, che sono aritmetica
-    esatta. Le righe che i dati non possono determinare non vengono mostrate.
+    liste cambiano nome a ogni voto, e ricondurle a una delle 12 aree &egrave; una scelta
+    editoriale dichiarata, non un dato. La mappatura &egrave; un file che si pu&ograve; aprire
+    e correggere. Per la singola sezione la mappa mostra le quote osservate in tutte le
+    tornate, che sono aritmetica esatta sui voti validi.
   </p>
 
   <h3>Da dove vengono i dati</h3>
@@ -181,8 +176,15 @@ footer { margin-top: 40px; border-top: 1px solid var(--filo-tenue); padding-top:
     Roma Capitale.
   </p>
   <p class="nota">
-    <b>Geometrie.</b> Dove il Comune le pubblica sono quelle ufficiali (Bologna,
-    Genova, Firenze, Modena, Cesena); altrove sono ricostruite per prossimit&agrave; agli
+    <b>Milano, Bologna e Genova.</b> Dati di sezione pubblicati dai Comuni come open data
+    (licenze aperte: CC BY 4.0 per Milano e Bologna, CC0, CC BY e CC BY-SA per Genova), con le regionali 2024
+    di Bologna e Genova dal file di sezione del progetto. Alcune tornate portano un
+    avviso nella mappa: i dati ufficiosi di Milano, i votanti per sezione che Genova non
+    pubblica, e piccole differenze fra la fonte del Comune e un'altra fonte di riferimento.
+  </p>
+  <p class="nota">
+    <b>Geometrie.</b> Dove il Comune le pubblica sono quelle ufficiali (nell'atlante
+    principale Bologna e Genova); altrove (Roma e Milano) sono ricostruite per prossimit&agrave; agli
     indirizzi dei seggi a partire da
     <a href="https://github.com/gabrielepinto/dati-sezioni-elettorali" target="_blank" rel="noreferrer">SEI,
     Sezioni Elettorali Italiane</a> di Gabriele Pinto (CC-BY-SA 4.0).
