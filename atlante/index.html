@@ -198,9 +198,33 @@ canvas.puntabile { cursor: pointer; }
 }
 /* Il titolo sta sopra le tessere, che sono chiare in tutti e due i temi: senza una
    piastra dietro, nel tema scuro l'inchiostro chiaro finirebbe su un fondo chiaro. */
-/* La barra sulla mappa non va a capo: a stringersi e' il titolo. */
+/* La tornata e' la scelta che si cambia piu' spesso: sta sulla mappa, in mezzo fra il
+   riquadro della citta' e i comandi di sistema, e **resta sempre sulla prima riga**.
+   Prima, quando i tre pezzi non ci stavano, scendeva su una riga sua: con il riquadro
+   delle cifre diventato piu' alto quella riga finiva in mezzo alla mappa, e sembrava un
+   elemento alla deriva. Ora la barra non va a capo e a stringersi e' il titolo. */
 .barra-alta { flex-wrap: nowrap; }
 .intestazione-mappa { flex: 0 1 auto; min-width: 0; }
+/* min-content invece di 0: cosi' la striscia non si lascia comprimere (i chip
+   hanno white-space nowrap e il testo verrebbe tagliato) e a cedere e' il
+   riquadro della citta', che ha la didascalia con i puntini. */
+.centro-alto {
+  flex: 1 1 auto; display: flex; justify-content: center; min-width: min-content;
+}
+.striscia-tornate {
+  display: flex; flex-wrap: nowrap; gap: 4px; pointer-events: auto;
+  background: var(--carta); border: 1px solid var(--filo-tenue);
+  border-radius: var(--r); padding: 4px 5px; box-shadow: var(--ombra);
+  max-width: 100%;
+}
+.striscia-tornate .chip { padding: 3px 9px; font-size: 11.5px; white-space: nowrap; }
+/* Sotto questa larghezza i tre pezzi non ci stanno piu' in fila. La striscia prende una
+   riga sua, ma **sopra** il riquadro e non sotto: sotto finiva in mezzo alla mappa e
+   sembrava alla deriva. */
+@media (max-width: 1180px) {
+  .barra-alta { flex-wrap: wrap; }
+  .centro-alto { order: -1; flex-basis: 100%; margin-bottom: 4px; }
+}
 /* Le cifre stanno nel riquadro sulla mappa, non piu' in una sezione della colonna:
    si leggono dove si guarda, e cambiano a ogni clic su una sezione. Tenute piccole:
    il riquadro sta sopra la mappa e ogni pixel in piu' e' mappa che non si vede. */
@@ -595,36 +619,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   font-family: "IBM Plex Mono", monospace; font-size: 10px; color: var(--ink-3);
 }
 
-/* ---------------------------------------------------------------- percorso
-   Citta', elezione, lista: tre scelte in cima alla colonna, uguali nelle due viste e
-   appiccicate in alto quando la colonna scorre. */
-.percorso {
-  position: sticky; top: 0; z-index: 8; background: var(--tavola);
-  box-shadow: 0 1px 0 var(--filo);
-}
-.percorso-riga { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.campo-percorso { min-width: 0; margin-top: 8px; }
-.percorso-riga .campo-percorso { margin-top: 0; }
-.campo-percorso .etichetta { display: block; margin-bottom: 4px; }
-.percorso .tendina { margin-top: 0; }
-.percorso .tendina:disabled { opacity: .55; cursor: not-allowed; }
-.ricerca input:disabled { opacity: .8; cursor: not-allowed; }
-.ricerca input:disabled::placeholder { color: var(--ink-2); }
-.percorso .risultati { margin-top: 4px; max-height: min(268px, 34dvh); }
-.percorso .nota { margin: 6px 0 0; }
-.percorso .nota:empty { display: none; }
-.ris-nome .simbolo { vertical-align: -.3em; margin-right: 6px; }
-/* invito sulla mappa nello stato guidato: non copre la mappa, solo il suo centro */
-.invito {
-  position: absolute; z-index: 3; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  pointer-events: none; max-width: min(320px, calc(100% - 32px));
-}
-.invito-scheda {
-  pointer-events: auto; text-align: center; background: var(--pannello);
-  border: 1px solid var(--filo); border-radius: var(--r); box-shadow: var(--ombra);
-  padding: 14px 18px;
-}
-.invito-testo { margin: 0 0 10px; font-size: 14px; color: var(--inchiostro); }
 .rampa-didascalie {
   display: flex; justify-content: space-between; margin-top: 1px;
   font-size: 10px; color: var(--ink-3);
@@ -640,10 +634,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
      comandi salgono in alto a destra: il tetto del 34% lascia loro il posto. */
   .banner { top: auto; bottom: 12px; left: 12px; right: 12px; width: auto; max-height: 34%; }
   .palco.con-banner .colonna-destra { right: 20px; bottom: auto; top: 64px; }
-  /* con la colonna impilata sotto la mappa e' bassa: testata ridotta al titolo, cosi' il
-     percorso sta nella parte visibile */
-  .testata { padding: 10px 14px 8px; }
-  .testata .occhiello, .testata .sottotitolo { display: none; }
   /* con meno altezza a disposizione la slitta si accorcia, i cinque gradini restano */
   .resa-slitta { height: 96px; }
   .resa-slitta input[type="range"] { width: 96px; }
@@ -671,6 +661,12 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   .intestazione-mappa .stat-riga,
   .intestazione-mappa .riga-sezione { display: none; }
   .intestazione-mappa h2 { font-size: 15px; }
+  .centro-alto { order: -1; flex-basis: 100%; margin-bottom: 4px; }
+  /* la striscia scorre di lato invece di stringersi e tagliare l'ultima tornata.
+     Qui min-width torna a zero: le quattro tornate per esteso vogliono 410 pixel e su
+     un telefono da 360 uscirebbero dallo schermo, portandosi dietro tutta la pagina. */
+  .centro-alto { justify-content: flex-start; overflow-x: auto; min-width: 0; }
+  .striscia-tornate { flex: 0 0 auto; }
   .tendina-mappa { min-width: 0; max-width: 100%; }
   /* la barra va su tre righe e i comandi finiscono da soli sulla terza: senza questo
      restavano a sinistra, e il pannello delle impostazioni, ancorato al loro bordo
@@ -719,6 +715,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
      il posto ai comandi sulla stessa riga */
   .intestazione-mappa { max-width: min(28ch, calc(58% - 8px)); }
   .azioni { max-width: 42%; }
+  /* con la colonna a fianco alla mappa restano meno di 400 pixel: la striscia scorre */
+  .centro-alto { justify-content: flex-start; overflow-x: auto; min-width: 0; }
   .testata { padding: 12px 14px 10px; }
   .titolo { font-size: 18px; }
 }
@@ -728,6 +726,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
    senza cambiare niente per chi usa il mouse. */
 @media (pointer: coarse) {
   .chip { padding: 7px 12px; }
+  .striscia-tornate .chip { padding: 6px 11px; font-size: 12px; }
   .bottone { padding: 8px 13px; }
   .tasto-icona { width: 38px; height: 38px; padding: 0; }
   .tendina { padding: 9px 8px; }
@@ -753,32 +752,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         Sezione per sezione. Roma, Milano, Bologna e Genova: le europee 2024 e le altre
         tornate dal 2021 con dati di sezione, con il confronto fra tornate.
       </p>
-    </div>
-
-    <div class="sezione-rail percorso" id="percorso" role="group"
-         aria-label="Percorso: città, elezione, lista">
-      <div class="percorso-riga">
-        <div class="campo-percorso">
-          <label class="etichetta" for="sel-citta">1. Città</label>
-          <select id="sel-citta" class="tendina"></select>
-        </div>
-        <div class="campo-percorso">
-          <label class="etichetta" for="sel-tornata">2. Elezione</label>
-          <select id="sel-tornata" class="tendina"></select>
-        </div>
-      </div>
-      <div class="campo-percorso">
-        <label class="etichetta" id="etichetta-lista" for="lista-input">3. Lista, in ordine di voti nella tornata</label>
-        <div class="ricerca">
-          <input id="lista-input" type="text" autocomplete="off" spellcheck="false" disabled
-                 role="combobox" aria-expanded="false" aria-controls="lista-opzioni"
-                 aria-autocomplete="list">
-        </div>
-        <div class="risultati nascosto" id="lista-opzioni" role="listbox"
-             aria-label="Liste della tornata"></div>
-        <p class="nota" id="nota-lista"></p>
-      </div>
-      <p class="nota" id="avviso-percorso" role="status"></p>
     </div>
 
     <div id="rail-atlante">
@@ -824,11 +797,11 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         <div class="scelta nascosto" id="scelta-municipio" style="margin-top:8px"></div>
         <p class="nota nascosto" id="avviso-tornata"></p>
       </div>
-      <div class="sezione-rail" id="blocco-misure">
-        <div class="etichetta">Altre misure</div>
+      <div class="sezione-rail">
+        <div class="etichetta">Cosa colorare</div>
         <div class="scelta" id="metriche"></div>
       </div>
-      <div class="sezione-rail" id="blocco-legenda">
+      <div class="sezione-rail">
         <div class="etichetta" id="etichetta-legenda">Legenda</div>
         <div class="rampa" id="rampa"></div>
         <div class="rampa-scala" id="rampa-scala"></div>
@@ -866,18 +839,16 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   <main class="palco" id="palco">
     <canvas id="tela"></canvas>
-    <div class="invito nascosto" id="invito-mappa" role="status">
-      <div class="invito-scheda">
-        <p class="invito-testo" id="invito-testo"></p>
-        <button class="bottone primario" id="invito-bottone" type="button"></button>
-      </div>
-    </div>
     <div class="sopra barra-alta">
       <div class="intestazione-mappa">
         <h2 id="titolo-mappa">Italia</h2>
         <p id="didascalia-mappa">Le quattro città con geometria delle sezioni disponibile.</p>
         <div class="stat-riga nascosto" id="stat-citta"></div>
         <div class="riga-sezione nascosto" id="riga-sezione"></div>
+      </div>
+      <div class="centro-alto">
+        <div class="striscia-tornate nascosto" id="striscia-tornate"
+             role="group" aria-label="Tornata elettorale"></div>
       </div>
       <div class="azioni">
         <div class="azioni-riga">
@@ -1438,18 +1409,15 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   ];
   var RESA_APERTURA = 2;
 
-  var METRICA_VUOTA = "";    // nessuna lista o misura ancora scelta
   var stato = {
     vista: "atlante",     // "atlante" | "citta"
     citta: null,
-    metrica: METRICA_VUOTA,  // lista o misura che colora la mappa; vuota = nessuna scelta
+    metrica: "affluenza",
     evidenziata: null,
     fissata: null,
     fondo: "grigio",      // "grigio" | "nessuno"
     resa: RESA_APERTURA,  // indice dentro RESE: governa il riempimento delle sezioni
-    tornata: null,        // id della tornata; con tornataScelta falso e' solo quella tecnica
-    tornataScelta: false, // vero solo dopo una scelta esplicita dell'elezione
-    avviso: "",           // ultimo messaggio di conservazione delle scelte
+    tornata: null,        // id della tornata scelta
     prospetto: "liste",   // id del prospetto dentro la tornata
     confronto: null,      // id della tornata con cui confrontare, oppure null
     metricaB: null,       // lista o "area:x" del secondo termine del confronto
@@ -1461,9 +1429,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     candidato: null       // {lista, ord} quando la mappa colora un candidato
   };
   function resa() { return RESE[stato.resa] || RESE[RESA_APERTURA]; }
-  // vero finche' manca l'elezione o la misura: la mappa resta neutra e invita al passo dopo
-  // (un candidato scelto dal banner colora la mappa anche senza lista: non e' stato guidato)
-  function guidato() { return !stato.tornataScelta || (stato.metrica === METRICA_VUOTA && !stato.candidato); }
 
   /* ------------------------------------------------ preferenze
      Si decodifica una citta' alla volta, la prima volta che serve. Per ogni candidato
@@ -1632,7 +1597,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   // affluenza, divario e aree non sono liste: chi cerca una lista deve chiederlo qui
   function listaCorrente() {
     if (stato.candidato) return stato.candidato.lista;
-    if (stato.metrica === METRICA_VUOTA) return null;
     if (stato.metrica === "affluenza" || stato.metrica === "divario") return null;
     if (stato.metrica.indexOf("area:") === 0) return null;
     if (stato.metrica === "organizzato") return null;
@@ -2107,9 +2071,29 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var c = stato.citta, t = tornataCorrente();
     // il riquadro a sinistra resta solo per il prospetto e per l'avviso della tornata
     document.getElementById("blocco-tornata").classList
-      .toggle("nascosto", !stato.tornataScelta || (t.prospetti.length < 2 && !t.avviso));
+      .toggle("nascosto", t.prospetti.length < 2 && !t.avviso);
     document.getElementById("etichetta-prospetto").textContent =
       t.prospetti.length > 1 ? "Prospetto" : "Nota sulla tornata";
+    var el = document.getElementById("striscia-tornate");
+    el.innerHTML = "";
+    el.classList.toggle("nascosto", c.tornate.length < 2);
+    c.tornate.forEach(function (x) {
+      var b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.textContent = etichettaBreve(x);
+      b.title = x.nome + ", " + x.data.split("-").reverse().join("/") +
+        (x.avviso ? ". " + x.avviso : "");
+      b.setAttribute("aria-pressed", String(stato.tornata === x.id));
+      b.addEventListener("click", function () {
+        if (stato.tornata === x.id) return;
+        stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null;
+        stato.tornata = x.id; stato.prospetto = "liste"; stato.candidato = null;
+        applicaTornata(c);
+        if (!metricaValida()) stato.metrica = metricaDiApertura();
+        ridisegnaTutto();
+      });
+      el.appendChild(b);
+    });
+
     var elp = document.getElementById("scelta-prospetto");
     elp.innerHTML = "";
     elp.classList.toggle("nascosto", t.prospetti.length < 2);
@@ -2121,9 +2105,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       b.addEventListener("click", function () {
         if (stato.prospetto === pr.id) return;
         stato.prospetto = pr.id; stato.candidato = null; stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null;
-        stato.avviso = "";
         applicaTornata(c);
-        verificaMisura();
+        stato.metrica = metricaDiApertura();
         ridisegnaTutto();
       });
       elp.appendChild(b);
@@ -2143,9 +2126,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
           b.addEventListener("click", function () {
             if (stato.municipio === mu) return;
             stato.municipio = mu; stato.candidato = null;
-            stato.avviso = "";
             applicaTornata(c);
-            verificaMisura();
+            stato.metrica = metricaDiApertura();
             ridisegnaTutto();
           });
           elm.appendChild(b);
@@ -2171,7 +2153,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   function etichettaTornata(x) {
     return x.nome.split(",")[0] + " " + x.data.slice(0, 4);
   }
-  // nel selettore dell'elezione e nel titolo lo spazio e' poco: basta il tipo di voto e l'anno
+  // sulla striscia in alto lo spazio e' poco: basta il tipo di voto e l'anno
   function etichettaBreve(x) {
     return x.nome.split(" ")[0].replace(",", "") + " " + x.data.slice(0, 4);
   }
@@ -2298,7 +2280,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var a = { t: valMC("mc-ta"), m: la }, b = { t: valMC("mc-tb"), m: lb };
     var terrA = la.indexOf("terr:") === 0, terrB = lb.indexOf("terr:") === 0;
     stato.prospetto = "liste"; stato.candidato = null; stato.org = false;
-    stato.tornataScelta = true; stato.avviso = "";
     if (!terrA && !terrB) {
       stato.tornata = a.t; stato.metrica = la; stato.confronto = b.t; stato.metricaB = lb; stato.biv = null;
     } else {
@@ -2343,7 +2324,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   function metricaValida() {
     var m = stato.metrica;
-    if (m === METRICA_VUOTA) return true;
     if (m === "affluenza") return !!(tornataCorrente() || {}).votanti;
     if (m === "divario") return !!preparaGenere(stato.citta);
     if (m === "organizzato") return orgDisponibile();
@@ -2353,10 +2333,19 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     }
     return stato.citta.liste.indexOf(m) >= 0;
   }
-  // dopo ogni cambio che invalida la misura si torna allo stato guidato: nessuna lista imposta
-  function metricaDiApertura() { return METRICA_VUOTA; }
+  function metricaDiApertura() {
+    var t = tornataCorrente();
+    if (t && t.votanti && stato.prospetto === "liste") return "affluenza";
+    var serie = stato.citta.liste;
+    if (!serie.length) return "affluenza";
+    var migliore = serie[0], meglio = -1;
+    serie.forEach(function (k) {
+      var v = totaleLista(stato.citta, k);
+      if (v > meglio) { meglio = v; migliore = k; }
+    });
+    return migliore;
+  }
 
-  // le liste stanno nel selettore del percorso: qui restano le misure speciali e i dati del territorio
   function costruisciMetriche() {
     var c = stato.citta, el = document.getElementById("metriche");
     el.innerHTML = "";
@@ -2368,27 +2357,81 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     // il divario di genere esiste per una tornata sola: non si confronta
     if (!stato.confronto && preparaGenere(c)) voci.push({ id: "divario", nome: "Divario di genere" });
     if (orgDisponibile()) voci.push({ id: "organizzato", nome: "Voto organizzato" });
-    el.parentNode.classList.toggle("nascosto", !!stato.confronto || !!stato.biv || !stato.tornataScelta);
-    voci.forEach(function (v) {
+    // le liste stanno in una tendina (menuListe), come i dati del territorio; qui restano i chip
+    // delle misure speciali. Col confronto acceso le singole liste non si possono colorare:
+    // non esistono nell'altra tornata.
+    el.parentNode.classList.toggle("nascosto", !!stato.confronto || !!stato.biv);
+    var titolo = document.createElement("div");
+    voci.forEach(function (v, k) {
+      if (v.area && k && !voci[k - 1].area) el.appendChild(separatore("aree politiche"));
+      if (v.terr && k && !voci[k - 1].terr) el.appendChild(separatore("territorio (intorno di circa 5 km²)"));
+      if (!v.area && v.id !== "affluenza" && v.id !== "divario" && k && voci[k - 1].area) {
+        el.appendChild(separatore("liste di questa tornata"));
+      }
       var b = document.createElement("button");
-      b.className = "chip"; b.type = "button"; b.textContent = v.nome;
-      b.title = v.nome + (v.id === "divario" ? ": affluenza femminile meno affluenza maschile, in punti"
+      b.className = "chip"; b.type = "button";
+      var speciale = (v.id === "affluenza" || v.id === "divario" || v.id === "organizzato" || !!v.terr);
+      if (!speciale) {
+        var im = simboloNodo(v.id, 16);
+        if (im) b.appendChild(im);
+      }
+      b.appendChild(document.createTextNode(speciale && !v.terr ? v.nome : abbrevia(v.id)));
+      b.title = v.nome + (v.area ? ", somma delle liste di quest’area" : "") +
+        (v.id === "divario" ? ": affluenza femminile meno affluenza maschile, in punti"
          : v.id === "organizzato" ? ": preferenze ogni 100 voti di lista, sezione per sezione" : "");
       b.setAttribute("aria-pressed", String(!stato.candidato &&
         (stato.metrica === v.id || (v.id === "organizzato" && stato.org))));
       b.addEventListener("click", function () {
+        var eraOrg = stato.metrica === "organizzato" || stato.org;
         if (v.id === "organizzato") {
           // il chip accende il voto organizzato sulla sezione intera, e lo spegne se e' gia' li'
           stato.metrica = stato.metrica === "organizzato" ? metricaDiApertura() : "organizzato";
+          stato.org = false;
         } else {
+          // con il voto organizzato acceso, scegliere una lista lo riferisce a quella lista
           stato.metrica = v.id;
+          stato.org = eraOrg && v.id !== "affluenza" && v.id !== "divario" && !v.terr;
         }
-        stato.org = false; stato.candidato = null; stato.avviso = "";
+        stato.candidato = null;
         ridisegnaTutto();
       });
       el.appendChild(b);
     });
+    menuListe(el, c);
     menuTerritorio(el, c);
+  }
+  // le liste della tornata in una tendina ordinata per voti: erano una ventina di chip
+  function menuListe(el, c) {
+    if (stato.confronto || stato.biv || !c.liste.length) return;
+    el.appendChild(separatore("liste di questa tornata"));
+    var sel = document.createElement("select");
+    sel.className = "tendina"; sel.id = "lista-select";
+    sel.setAttribute("aria-label", "Liste di questa tornata");
+    sel.style.cssText = "width:100%;margin-top:2px";
+    var vuota = document.createElement("option");
+    vuota.value = ""; vuota.textContent = "Scegli una lista\u2026";
+    sel.appendChild(vuota);
+    c.liste.slice().sort(function (a, b) {
+      return totaleLista(c, b) - totaleLista(c, a);
+    }).forEach(function (l) {
+      var o = document.createElement("option");
+      o.value = l; o.textContent = ETICHETTE[l] || l;
+      sel.appendChild(o);
+    });
+    var corrente = (!stato.candidato && c.liste.indexOf(stato.metrica) >= 0) ? stato.metrica : "";
+    sel.value = corrente;
+    sel.addEventListener("change", function () {
+      if (!sel.value) { sel.value = corrente; return; }
+      // con il voto organizzato acceso, scegliere una lista lo riferisce a quella lista
+      var eraOrg = stato.metrica === "organizzato" || stato.org;
+      stato.metrica = sel.value; stato.org = eraOrg;
+      stato.candidato = null;
+      ridisegnaTutto();
+      // la tendina e' ricostruita da ridisegnaTutto: il fuoco torna li' per chi usa la tastiera
+      var nuova = document.getElementById("lista-select");
+      if (nuova) nuova.focus();
+    });
+    el.appendChild(sel);
   }
   // dati del territorio: un menu a tendina raggruppato per fonte invece di una ventina di chip
   function menuTerritorio(el, c) {
@@ -2412,7 +2455,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     sel.value = (terrAttivo() && !stato.candidato) ? stato.metrica : "";
     sel.addEventListener("change", function () {
       stato.metrica = sel.value || metricaDiApertura();
-      stato.candidato = null; stato.org = false; stato.avviso = "";
+      stato.candidato = null; stato.org = false;
       ridisegnaTutto();
     });
     el.appendChild(sel);
@@ -2425,272 +2468,13 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     d.textContent = testo;
     return d;
   }
-  /* ------------------------------------------------ percorso: citta', elezione, lista
-     Tre scelte in cima alla colonna. Dopo la citta' l'elezione e' vuota e la lista
-     disattivata: nessuna mappa imposta. Quando una scelta cambia, quelle ancora valide
-     restano e quelle che non lo sono piu' si azzerano con un messaggio. */
-  var selCitta = document.getElementById("sel-citta");
-  var selTornata = document.getElementById("sel-tornata");
-  var inLista = document.getElementById("lista-input");
-  var elOpz = document.getElementById("lista-opzioni");
-  var listaVoci = [], listaSel = -1, listaFiltro = "";
-
-  function nomeSpeciale(m) {
-    if (m === "affluenza") return "Affluenza";
-    if (m === "divario") return "Divario di genere";
-    if (m === "organizzato") return "Voto organizzato";
-    if (m.indexOf("terr:") === 0) { var r = terrInd(m); return r ? r.m.nome : "Il dato del territorio"; }
-    if (m.indexOf("area:") === 0) return (AREE[m.slice(5)] || {}).nome || m.slice(5);
-    return m;
-  }
-  /* Regola unica di conservazione, dopo applicaTornata: la misura resta se vale nel nuovo
-     contesto, altrimenti si torna allo stato guidato con un messaggio. Il voto organizzato
-     riferito a una lista si spegne da solo e la lista resta. */
-  function verificaMisura() {
-    var m = stato.metrica, msg = "";
-    if (m !== METRICA_VUOTA && !metricaValida()) {
-      var speciale = m === "affluenza" || m === "divario" || m === "organizzato" ||
-        m.indexOf("terr:") === 0 || m.indexOf("area:") === 0;
-      msg = speciale
-        ? nomeSpeciale(m) + " non è disponibile nella tornata selezionata. Scegli una lista o un'altra misura." +
-          (m === "affluenza" ? " I votanti per sezione non sono pubblicati." : "")
-        : "Questa lista non è disponibile nella tornata selezionata. Scegline un'altra.";
-      stato.metrica = METRICA_VUOTA; stato.org = false;
-    } else if (stato.org && !orgDisponibile()) {
-      stato.org = false;
-      msg = "Il voto organizzato non è disponibile in questa tornata: la mappa mostra la quota della lista.";
-    }
-    if (stato.metrica === METRICA_VUOTA) stato.org = false;
-    stato.avviso = msg;
-    return msg;
-  }
-  function scegliCitta(k) { if (k) apriCitta(k); }
-  function scegliTornata(tid) {
-    var c = stato.citta;
-    if (!c || (stato.tornataScelta && stato.tornata === tid)) return;
-    stato.confronto = null; stato.metricaB = null; stato.biv = null; stato.candidato = null;
-    stato.tornata = tid; stato.tornataScelta = true; stato.prospetto = "liste";
-    stato.avviso = "";
-    applicaTornata(c);
-    verificaMisura();
-    ridisegnaTutto();
-  }
-  function scegliLista(k) {
-    if (!stato.citta || stato.citta.liste.indexOf(k) < 0) return;
-    var eraOrg = stato.metrica === "organizzato" || stato.org;
-    // con il voto organizzato acceso, scegliere una lista lo riferisce a quella lista
-    stato.metrica = k; stato.org = eraOrg;
-    stato.candidato = null; stato.avviso = "";
-    ridisegnaTutto();
-  }
-
-  function nomeSceltaLista() {
-    var c = stato.citta, m = stato.metrica;
-    return (c && m !== METRICA_VUOTA && c.liste.indexOf(m) >= 0) ? (ETICHETTE[m] || m) : "";
-  }
-  function nuovaOpzione(v, testo) {
-    var o = document.createElement("option");
-    o.value = v; o.textContent = testo;
-    return o;
-  }
-  function costruisciPercorso() {
-    var c = stato.vista === "citta" ? stato.citta : null;
-    // gli elenchi si ricostruiscono solo se cambia la citta': ridisegnarli a ogni scelta
-    // strapperebbe il fuoco al campo mentre lo si usa con la tastiera
-    var sigC = c ? "c" : "a";
-    if (selCitta.dataset.sig !== sigC) {
-      selCitta.innerHTML = "";
-      var v0 = nuovaOpzione("", "Scegli…"); v0.disabled = true;
-      if (!c) selCitta.appendChild(v0);
-      CHIAVI.forEach(function (k) { selCitta.appendChild(nuovaOpzione(k, CITTA[k].nome)); });
-      selCitta.dataset.sig = sigC;
-    }
-    selCitta.value = c ? c.chiave : "";
-    var sigT = c ? c.chiave : "-";
-    if (selTornata.dataset.sig !== sigT) {
-      selTornata.innerHTML = "";
-      var t0 = nuovaOpzione("", "Scegli…"); t0.disabled = true;
-      selTornata.appendChild(t0);
-      if (c) c.tornate.forEach(function (x) {
-        var o = nuovaOpzione(x.id, etichettaBreve(x));
-        o.title = x.nome + ", " + x.data.split("-").reverse().join("/");
-        selTornata.appendChild(o);
-      });
-      selTornata.dataset.sig = sigT;
-    }
-    selTornata.disabled = !c;
-    selTornata.value = (c && stato.tornataScelta) ? stato.tornata : "";
-
-    var inConfronto = !!stato.confronto || !!stato.biv;
-    inLista.disabled = !(c && stato.tornataScelta && !inConfronto);
-    var pr = c ? prospettoCorrente() : null;
-    document.getElementById("etichetta-lista").textContent =
-      "3. " + (pr && pr.id !== "liste" ? pr.nome : "Lista") + ", in ordine di voti nella tornata";
-    inLista.placeholder = !c ? "Prima scegli una città"
-      : !stato.tornataScelta ? "Prima scegli un'elezione" : "Cerca o scegli…";
-    document.getElementById("nota-lista").textContent =
-      (c && inConfronto) ? "Esci dal confronto per cambiare lista" : "";
-    // con l'elenco aperto il campo contiene quello che l'utente sta scrivendo
-    if (!listaAperta()) inLista.value = nomeSceltaLista();
-    document.getElementById("avviso-percorso").textContent = stato.avviso;
-  }
-
-  function listaAperta() { return !elOpz.classList.contains("nascosto"); }
-  // ordine per voti totali della tornata, come i chip di prima (a parita' resta quello della serie)
-  function vociLista() {
-    var c = stato.citta;
-    if (!c) return [];
-    return c.liste.slice().sort(function (a, b) { return totaleLista(c, b) - totaleLista(c, a); })
-      .map(function (k) { return { k: k, nome: ETICHETTE[k] || k, breve: abbrevia(k) }; });
-  }
-  function evidenziaLista(i, scorri) {
-    listaSel = i;
-    if (listaVoci.length) Array.prototype.forEach.call(elOpz.children, function (n, j) {
-      n.setAttribute("aria-selected", String(j === i));
-      if (j === i && scorri && n.scrollIntoView) n.scrollIntoView({ block: "nearest" });
-    });
-    if (i >= 0 && listaVoci.length && elOpz.children[i]) {
-      inLista.setAttribute("aria-activedescendant", elOpz.children[i].id);
-    } else inLista.removeAttribute("aria-activedescendant");
-  }
-  function apriLista(tutte) {
-    if (inLista.disabled) return;
-    if (tutte) listaFiltro = "";
-    var q = normalizza(listaFiltro), termini = q ? q.split(" ") : [];
-    listaVoci = vociLista().filter(function (v) {
-      var n = normalizza(v.nome + " " + v.breve);
-      return termini.every(function (x) { return n.indexOf(x) >= 0; });
-    });
-    elOpz.innerHTML = "";
-    if (!listaVoci.length) {
-      var vuoto = document.createElement("div");
-      vuoto.className = "ris-vuoto"; vuoto.textContent = "Nessuna lista trovata";
-      elOpz.appendChild(vuoto);
-    }
-    listaVoci.forEach(function (v, i) {
-      var b = document.createElement("button");
-      b.className = "ris"; b.type = "button"; b.id = "lista-opt-" + i; b.tabIndex = -1;
-      b.setAttribute("role", "option"); b.dataset.k = v.k;
-      var corpo = document.createElement("span"), nome = document.createElement("span");
-      nome.className = "ris-nome";
-      var sim = simboloNodo(v.k, 16);
-      if (sim) nome.appendChild(sim);
-      nome.appendChild(document.createTextNode(v.breve));
-      corpo.appendChild(nome);
-      if (v.nome !== v.breve) {
-        var sotto = document.createElement("span");
-        sotto.className = "ris-sotto"; sotto.textContent = v.nome;
-        corpo.appendChild(sotto);
-      }
-      var cifra = document.createElement("span");
-      cifra.className = "ris-cifra"; cifra.textContent = nf.format(totaleLista(stato.citta, v.k));
-      b.appendChild(corpo); b.appendChild(cifra);
-      b.addEventListener("click", function () { scegliDaLista(v.k); });
-      elOpz.appendChild(b);
-    });
-    elOpz.classList.remove("nascosto");
-    inLista.setAttribute("aria-expanded", "true");
-    // il gruppo sale in cima alla colonna e l'elenco prende lo spazio che resta: nei layout
-    // impilati la colonna e' bassa e un elenco piu' alto uscirebbe dalla finestra
-    var rail = document.querySelector(".rail"), perc = document.getElementById("percorso");
-    var dy = perc.getBoundingClientRect().top - rail.getBoundingClientRect().top;
-    if (dy > 0) rail.scrollTop += dy;
-    var spazio = rail.getBoundingClientRect().bottom - inLista.getBoundingClientRect().bottom - 16;
-    elOpz.style.maxHeight = Math.max(90, Math.min(268, spazio)) + "px";
-    var corrente = -1;
-    if (!q) listaVoci.forEach(function (v, i) { if (v.k === stato.metrica) corrente = i; });
-    evidenziaLista(listaVoci.length ? Math.max(corrente, 0) : -1, true);
-  }
-  function chiudiLista(ripristina) {
-    elOpz.classList.add("nascosto"); elOpz.innerHTML = "";
-    listaVoci = []; listaSel = -1; listaFiltro = "";
-    inLista.setAttribute("aria-expanded", "false");
-    inLista.removeAttribute("aria-activedescendant");
-    if (ripristina) inLista.value = nomeSceltaLista();
-  }
-  // Chiuso l'elenco, il contenuto sotto risale: il secondo clic di un doppio clic colpirebbe un
-  // altro comando. Uno strato trasparente assorbe i clic sull'area dell'elenco per un istante.
-  function scegliDaLista(k) {
-    var r = elOpz.getBoundingClientRect();
-    chiudiLista(false); scegliLista(k);
-    var s = document.createElement("div");
-    s.style.cssText = "position:fixed;z-index:60;background:transparent;left:" + r.left + "px;top:" + r.top +
-      "px;width:" + r.width + "px;height:" + r.height + "px";
-    document.body.appendChild(s);
-    setTimeout(function () { if (s.parentNode) s.parentNode.removeChild(s); }, 450);
-  }
-
-  selCitta.addEventListener("change", function () { scegliCitta(selCitta.value); });
-  selTornata.addEventListener("change", function () {
-    if (selTornata.value) scegliTornata(selTornata.value);
-  });
-  inLista.addEventListener("focus", function () {
-    if (!listaAperta()) { apriLista(true); inLista.select(); }
-  });
-  inLista.addEventListener("click", function () { if (!listaAperta()) apriLista(true); });
-  inLista.addEventListener("input", function () { listaFiltro = inLista.value; apriLista(false); });
-  inLista.addEventListener("keydown", function (e) {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      if (!listaAperta()) { apriLista(true); return; }
-      if (!listaVoci.length) return;
-      var d = e.key === "ArrowDown" ? 1 : -1;
-      evidenziaLista((listaSel + d + listaVoci.length) % listaVoci.length, true);
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (listaAperta() && listaSel >= 0 && listaVoci[listaSel]) scegliDaLista(listaVoci[listaSel].k);
-    } else if (e.key === "Escape") {
-      // con l'elenco aperto Escape chiude solo quello e rimette nel campo la scelta corrente
-      if (listaAperta()) { e.stopPropagation(); chiudiLista(true); }
-    } else if (e.key === "Tab") chiudiLista(true);
-  });
-  document.addEventListener("pointerdown", function (e) {
-    if (!listaAperta()) return;
-    var x = e.target;
-    if (x && x.closest && (x.closest("#lista-input") || x.closest("#lista-opzioni"))) return;
-    chiudiLista(true);
-  });
-
-  /* Nello stato guidato la mappa e' neutra e un riquadro dice il passo dopo. */
-  function aggiornaInvito() {
-    var el = document.getElementById("invito-mappa");
-    var mostra = stato.vista === "citta" && !!stato.citta && guidato();
-    el.classList.toggle("nascosto", !mostra);
-    if (!mostra) return;
-    var manca = !stato.tornataScelta;
-    document.getElementById("invito-testo").textContent = manca
-      ? "2. Scegli un'elezione" : "3. Scegli una lista per colorare le sezioni";
-    var b = document.getElementById("invito-bottone");
-    b.textContent = manca ? "Scegli l'elezione" : "Scegli la lista";
-    b.dataset.verso = manca ? "sel-tornata" : "lista-input";
-  }
-  document.getElementById("invito-bottone").addEventListener("click", function () {
-    var v = document.getElementById("invito-bottone").dataset.verso;
-    if (v) document.getElementById(v).focus();
-  });
-
-  // accesso in sola lettura per le prove automatiche
-  window.atlanteStato = function () {
-    var o = JSON.parse(JSON.stringify(stato, function (k, v) {
-      return k === "citta" ? (v ? v.chiave : null) : v;
-    }));
-    o.cam = { lon: cam.lon, y: cam.y, scala: cam.scala };
-    o.guidato = guidato();
-    return o;
-  };
-  window.atlanteScala = function () {
-    if (stato.vista !== "citta" || !stato.citta) return null;
-    var s = scala(stato.citta);
-    return { min: s.min, max: s.max, soglie: s.soglie.slice(), n: s.n, tipo: s.tipo };
-  };
-
   // ogni cambio di tornata, prospetto, serie o confronto tocca gli stessi pannelli
   function ridisegnaTutto() {
     cacheScala = {};
-    costruisciTornata(); costruisciMetriche(); costruisciPercorso(); costruisciZona(); aggiornaLegenda();
+    costruisciTornata(); costruisciMetriche(); costruisciZona(); aggiornaLegenda();
     aggiornaZone(); aggiornaFlussi(); aggiornaClassifica(); aggiornaTitolo();
     aggiornaStatCitta(); aggiornaSezioneFissata(); aggiornaBanner();
-    aggiornaProvenienza(); aggiornaBiv(); aggiornaInvito(); disegna();
+    aggiornaProvenienza(); aggiornaBiv(); disegna();
   }
   function abbrevia(l) {
     if (l === "affluenza") return "Affluenza";
@@ -2925,33 +2709,33 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   }
   function aggiornaLegenda() {
     var rb = document.getElementById("rampa"), rs = document.getElementById("rampa-scala");
-    var rd = document.getElementById("rampa-didascalie"), nc = document.getElementById("nota-classi");
-    var lb = document.getElementById("legenda-biv"), nm = document.getElementById("nota-metrica");
-    // nello stato guidato non c'e' ancora niente da leggere: la legenda sparisce
-    document.getElementById("blocco-legenda").classList.toggle("nascosto", guidato());
-    if (guidato()) return;
+    var lb = document.getElementById("legenda-biv");
     rb.classList.toggle("nascosto", !!stato.biv); rs.classList.toggle("nascosto", !!stato.biv);
-    rd.classList.toggle("nascosto", !!stato.biv);
+    document.getElementById("rampa-didascalie").classList.toggle("nascosto", !!stato.biv);
     lb.classList.toggle("nascosto", !stato.biv);
-    if (stato.biv) { nc.classList.add("nascosto"); legendaBiv(lb); return; }
+    if (stato.biv) { document.getElementById("nota-classi").classList.add("nascosto"); legendaBiv(lb); return; }
     var c = stato.citta, sc = scala(c), rampa = rampaCorrente();
     var tinta = tintaCorrente();
-    // il dato del territorio non dipende dalla tornata e nel confronto i due lati sono gia' per esteso
-    var conTornata = !stato.confronto && !terrAttivo();
     document.getElementById("etichetta-legenda").innerHTML =
       (tinta === "affluenza" || tinta === "divario" || stato.confronto ? "" : simboloHtml(tinta, 13)) +
-      nomeMetrica() + (conTornata ? " \u00b7 " + etichettaBreve(tornataCorrente()) : "") + ", " + suCosa();
+      nomeMetrica() + ", " + suCosa();
     document.getElementById("rampa").innerHTML = rampa.map(function (col) {
       return '<i style="background:' + col + '"></i>';
     }).join("");
     document.getElementById("rampa-scala").innerHTML =
       "<span>" + fmt(sc.min) + "</span><span>" + fmt((sc.min + sc.max) / 2) + "</span><span>" + fmt(sc.max) + "</span>";
+    // gli estremi sono percentili, non minimo e massimo: la legenda lo dice e dichiara il criterio
     var capt = sc.tipo === "simmetrica" ? ["\u2212estremo", "0", "+estremo"]
       : sc.tipo === "estremi" ? ["minimo", "punto medio", "massimo"]
       : ["3\u00b0 percentile", "punto medio", "97\u00b0 percentile"];
-    rd.innerHTML = capt.map(function (x) { return "<span>" + x + "</span>"; }).join("");
-    nc.textContent = sc.n ? notaClassi(sc) : "";
-    nc.classList.toggle("nascosto", !sc.n);
+    document.getElementById("rampa-didascalie").innerHTML =
+      capt.map(function (x) { return "<span>" + x + "</span>"; }).join("");
+    var nc = document.getElementById("nota-classi");
+    // con valori non numerici nei dati (NaN gia' presenti in alcuni prospetti municipali) la nota non si dice
+    var okNota = !!sc.n && isFinite(sc.min) && isFinite(sc.max);
+    nc.textContent = okNota ? notaClassi(sc) : "";
+    nc.classList.toggle("nascosto", !okNota);
+    var nm = document.getElementById("nota-metrica");
     var testo = "";
     if (!stato.candidato && !stato.confronto) {
       if (stato.metrica === "divario") testo = TESTO_DIVARIO;
@@ -3343,7 +3127,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   function aggiornaStatCitta() {
     var box = document.getElementById("stat-citta");
-    if (stato.vista !== "citta" || !stato.citta || guidato()) {
+    if (stato.vista !== "citta" || !stato.citta) {
       box.classList.add("nascosto");
       document.getElementById("riga-sezione").classList.add("nascosto");
       return;
@@ -3392,7 +3176,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   function aggiornaRigaSezione() {
     var riga = document.getElementById("riga-sezione");
     var c = stato.citta;
-    if (!c || stato.vista !== "citta" || guidato() || typeof stato.fissata !== "number" ||
+    if (!c || stato.vista !== "citta" || typeof stato.fissata !== "number" ||
         !c.sez[stato.fissata]) {
       riga.classList.add("nascosto");
       return;
@@ -3606,7 +3390,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     // metrica e' proprio il divario di genere, altrimenti la tabella userebbe quello
     var gen = (!stato.confronto && stato.metrica === "divario") ? preparaGenere(c) : null;
     var blocco = document.getElementById("blocco-zone");
-    if (!campo || stato.biv || guidato()) { blocco.classList.add("nascosto"); return; }
+    if (!campo || stato.biv) { blocco.classList.add("nascosto"); return; }
     blocco.classList.remove("nascosto");
     document.getElementById("etichetta-zone").textContent =
       campo.replace(/_/g, " ") + ", aggregato dalle sezioni" +
@@ -3706,10 +3490,10 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   }
 
   function aggiornaTitolo() {
-    var tit = document.getElementById("titolo-mappa"), did = document.getElementById("didascalia-mappa");
     if (stato.vista === "atlante") {
-      tit.textContent = "Italia";
-      did.textContent = "1. Scegli una città: dall'elenco, dal campo Città o con un clic sulla mappa.";
+      document.getElementById("titolo-mappa").textContent = "Italia";
+      document.getElementById("didascalia-mappa").textContent =
+        "Le quattro città con geometria delle sezioni disponibile. Clic su una città per aprirla.";
       return;
     }
     var c = stato.citta;
@@ -3718,15 +3502,15 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       quante = 0;
       c.sez.forEach(function (s) { if (dentroFiltro(s)) quante++; });
     }
-    // Citta' · Tornata · Misura: ogni parte compare quando e' stata scelta
-    tit.textContent = c.nome +
+    // Citta' · Tornata · Misura
+    document.getElementById("titolo-mappa").textContent = c.nome +
       (stato.zona ? ", " + etichettaZona(stato.zona.campo, stato.zona.valore) : "") +
-      (stato.tornataScelta ? " \u00b7 " + etichettaBreve(tornataCorrente()) : "") +
-      (guidato() ? "" : " \u00b7 " + nomeMetrica());
-    if (!stato.tornataScelta) { did.textContent = "2. Scegli un'elezione per questa città."; return; }
-    if (guidato()) { did.textContent = "3. Scegli una lista per colorare le sezioni"; return; }
+      "\u00a0\u00b7 " + etichettaBreve(tornataCorrente()) +
+      (stato.confronto ? " / " + etichettaBreve(tornataDi(c, stato.confronto)) : "") +
+      "\u00a0\u00b7 " + nomeMetrica();
     var su = suCosa();
-    did.textContent = su.charAt(0).toUpperCase() + su.slice(1) + ", " +
+    document.getElementById("didascalia-mappa").textContent =
+      su.charAt(0).toUpperCase() + su.slice(1) + ", " +
       nf.format(quante) + " sezioni" +
       (stato.zona ? " su " + nf.format(c.sez.length) : "") +
       ". Passa sopra una sezione per i dettagli.";
@@ -3780,7 +3564,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
     b.addEventListener("click", function () {
       stato.candidato = attivo ? null : { lista: cand.lista, ord: cand.ord };
-      aggiornaInvito();
       costruisciMetriche(); aggiornaLegenda(); aggiornaZone(); aggiornaClassifica(); aggiornaTitolo();
       aggiornaStatCitta(); aggiornaSezioneFissata(); aggiornaBanner(); disegna();
     });
@@ -3793,7 +3576,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var c = stato.vista === "citta" ? stato.citta : null;
     var sez = sezioneFissata();
     // il banner si apre solo dopo il clic su una sezione, e non restringe la mappa
-    var pr = (c && sez && stato.tornataScelta && !stato.confronto && !stato.biv) ? preparaPreferenze(c) : null;
+    var pr = (c && sez && !stato.confronto && !stato.biv) ? preparaPreferenze(c) : null;
     banner.classList.toggle("nascosto", !pr);
     palco.classList.toggle("con-banner", !!pr);
     if (!pr) return;
@@ -3873,7 +3656,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   function aggiornaClassifica() {
     var c = stato.citta;
     var blocco = document.getElementById("blocco-classifica");
-    if (stato.vista !== "citta" || !c || stato.biv || guidato()) { blocco.classList.add("nascosto"); return; }
+    if (stato.vista !== "citta" || !c || stato.biv) { blocco.classList.add("nascosto"); return; }
     blocco.classList.remove("nascosto");
     document.getElementById("etichetta-classifica").textContent =
       "Sezioni per " + nomeMetrica().toLowerCase();
@@ -4187,8 +3970,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   function aggiornaSezioneFissata() {
     var blocco = document.getElementById("blocco-sezione");
-    if (stato.vista !== "citta" || !stato.tornataScelta || typeof stato.fissata !== "number" ||
-        !stato.citta.sez[stato.fissata]) {
+    if (stato.vista !== "citta" || typeof stato.fissata !== "number" || !stato.citta.sez[stato.fissata]) {
       blocco.classList.add("nascosto");
       return;
     }
@@ -4207,7 +3989,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var zone = zoneDiSezione(c, s);
     document.getElementById("scheda-sezione").innerHTML =
       '<div class="scheda-testa"><span class="scheda-num">Sezione ' + s.s + "</span>" +
-      '<span class="ris-cifra">' + (stato.biv ? bivTesto(c, s) : guidato() ? "" : fmt(valore(c, s)) + " " + nomeMetrica().toLowerCase()) + "</span></div>" +
+      '<span class="ris-cifra">' + (stato.biv ? bivTesto(c, s) : fmt(valore(c, s)) + " " + nomeMetrica().toLowerCase()) + "</span></div>" +
       '<div class="scheda-zona">' + (zone.length ? zone.join(" \u00b7 ") : c.nome) + "</div>" +
       '<div class="stat-griglia">' +
         stat(nElet(s.e), "elettori") +
@@ -4350,31 +4132,16 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   function apriCitta(k, destinazione) {
     var c = CITTA[k];
     preparaCitta(c);
-    // la tornata si conserva se nella nuova citta' c'e' la stessa elezione (stesso id e stesso nome)
-    var prec = (stato.citta && stato.tornata) ? tornataDi(stato.citta, stato.tornata) : null;
-    var conservata = prec ? tornataDi(c, prec.id) : null;
-    if (conservata && conservata.nome !== prec.nome) conservata = null;
-    var eraScelta = stato.tornataScelta;
     stato.vista = "citta"; stato.citta = c; stato.fissata = null; stato.evidenziata = null;
     stato.candidato = null;               // un candidato vale per la citta' in cui sta
     stato.livello = 0; stato.zona = null; // livello e filtro valgono per la citta' aperta
-    stato.confronto = null; stato.metricaB = null; stato.biv = null;
+    stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null;
     stato.prospetto = "liste"; stato.municipio = 1;
-    stato.avviso = "";
-    if (conservata) {
-      stato.tornata = conservata.id;
-      applicaTornata(c);
-      verificaMisura();
-    } else {
-      // tornata tecnica: le europee 2024, che tutte le citta' hanno (e le sole con il divario di
-      // genere e il voto organizzato), altrimenti l'ultima. L'elezione resta da scegliere.
-      stato.tornata = (tornataDi(c, "europee2024") || c.tornate[c.tornate.length - 1]).id;
-      stato.tornataScelta = false; stato.metrica = METRICA_VUOTA; stato.org = false;
-      applicaTornata(c);
-      if (prec && eraScelta) {
-        stato.avviso = c.nome + " non ha l'elezione " + etichettaBreve(prec) + ": scegline un'altra.";
-      }
-    }
+    // si apre sulle europee 2024, la tornata che tutte le citta' hanno (e le sole con il divario
+    // di genere e il voto organizzato); se mancasse, sull'ultima
+    stato.tornata = (tornataDi(c, "europee2024") || c.tornate[c.tornate.length - 1]).id;
+    applicaTornata(c);
+    if (!metricaValida()) stato.metrica = metricaDiApertura();
     document.getElementById("rail-atlante").classList.add("nascosto");
     document.getElementById("rail-citta").classList.remove("nascosto");
     document.getElementById("sottotitolo").textContent =
@@ -4382,11 +4149,11 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     Array.prototype.forEach.call(document.querySelectorAll(".voce"), function (b) {
       b.setAttribute("aria-current", String(b.dataset.citta === k));
     });
-    costruisciTornata(); costruisciMetriche(); costruisciPercorso(); costruisciZona(); costruisciFondo();
+    costruisciTornata(); costruisciMetriche(); costruisciZona(); costruisciFondo();
     aggiornaLegenda(); aggiornaStatCitta();
     aggiornaZone(); aggiornaFlussi(); aggiornaClassifica(); aggiornaTitolo();
     aggiornaProvenienza(); aggiornaSezioneFissata();
-    aggiornaResaVisibile(); aggiornaBanner(); aggiornaBiv(); aggiornaInvito();
+    aggiornaResaVisibile(); aggiornaBanner(); aggiornaBiv();
     vola(destinazione || inquadratura(c.bbox), 900);
   }
   function aggiornaResaVisibile() {
@@ -4399,9 +4166,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   function tornaAtlante() {
     stato.vista = "atlante"; stato.citta = null; stato.fissata = null; stato.evidenziata = null;
     stato.candidato = null;
-    // si riparte da zero: la prossima citta' si apre di nuovo con l'elezione da scegliere
-    stato.tornata = null; stato.tornataScelta = false; stato.metrica = METRICA_VUOTA;
-    stato.org = false; stato.avviso = "";
     document.getElementById("rail-citta").classList.add("nascosto");
     document.getElementById("rail-atlante").classList.remove("nascosto");
     document.getElementById("sottotitolo").textContent =
@@ -4409,7 +4173,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     Array.prototype.forEach.call(document.querySelectorAll(".voce"), function (b) { b.setAttribute("aria-current", "false"); });
     nascondiSuggerimento(); aggiornaTitolo(); aggiornaSezioneFissata(); aggiornaCredito();
     aggiornaResaVisibile(); aggiornaBanner(); aggiornaBiv();
-    costruisciPercorso(); aggiornaInvito();
     vola(inquadratura(bboxMerc([6.6, 36.6, 18.6, 47.1]), .02), 900);
   }
 
@@ -4434,10 +4197,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     }).join("");
     var zone2 = zoneDiSezione(c, s);
     var zona = zone2.length ? " · " + zone2[zone2.length - 1] : "";
-    var testa = '<div class="sug-titolo">Sezione ' + s.s + zona + "</div>";
-    if (!stato.tornataScelta) return testa;
-    return testa +
-      (guidato() ? "" : '<div class="sug-cifra">' + fmt(v) + "</div>") +
+    return '<div class="sug-titolo">Sezione ' + s.s + zona + "</div>" +
+      '<div class="sug-cifra">' + fmt(v) + "</div>" +
       '<div class="sug-riga"><span>elettori</span><b>' + nElet(s.e) + "</b></div>" +
       '<div class="sug-riga"><span>votanti</span><b>' + nElet(s.v) + "</b></div>" +
       '<div class="sug-liste">' + righe + "</div>";
@@ -4570,6 +4331,20 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     }).observe(document.getElementById("palco"));
   }
 
+  // accesso in sola lettura per le prove automatiche
+  window.atlanteStato = function () {
+    var o = JSON.parse(JSON.stringify(stato, function (k, v) {
+      return k === "citta" ? (v ? v.chiave : null) : v;
+    }));
+    o.cam = { lon: cam.lon, y: cam.y, scala: cam.scala };
+    return o;
+  };
+  window.atlanteScala = function () {
+    if (stato.vista !== "citta" || !stato.citta) return null;
+    var s = scala(stato.citta);
+    return { min: s.min, max: s.max, soglie: s.soglie.slice(), n: s.n, tipo: s.tipo };
+  };
+
   /* ------------------------------------------------ avvio */
   stato.fondo = pref.fondo;
   applicaTema();
@@ -4582,7 +4357,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   ridimensiona();
   cam = inquadratura(bboxMerc([6.6, 36.6, 18.6, 47.1]), .02);
   aggiornaTitolo();
-  costruisciPercorso(); aggiornaInvito();
   disegna();
 })();
 </script>
