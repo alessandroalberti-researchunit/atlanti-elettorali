@@ -1248,6 +1248,36 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var d = s.t[tid];
     return (d && d.v !== null && d.v !== undefined && d.e) ? 100 * d.v / d.e : null;
   }
+  /* Sezioni con votanti oltre gli iscritti (tutte sotto i 50 iscritti nei dati attuali): il rapporto
+     non e' un'affluenza. Si mostra n.d. con la spiegazione e si lascia grigia la sezione, ma il
+     valore grezzo resta in valore(), nel totale e nella mediana. */
+  function affluenzaOltre(c, s, tid) {
+    var t = tornataDi(c, tid), d = s.t[tid];
+    return !!(t && t.votanti && d && d.e && d.v !== null && d.v !== undefined && d.v > d.e);
+  }
+  function testoOltre(s, tid) {
+    var d = s.t[tid];
+    return "Votanti " + nf.format(d.v) + ", iscritti " + nf.format(d.e) + ": i votanti superano gli iscritti, " +
+      "quindi il rapporto non è un'affluenza. Possibili cause, da verificare alla fonte: sezione speciale o errore nel dato.";
+  }
+  // vale quando la misura colorata e' l'affluenza della tornata corrente
+  function oltreInMisura(c, s) {
+    return stato.metrica === "affluenza" && !stato.confronto && !stato.biv && !stato.candidato &&
+      affluenzaOltre(c, s, stato.tornata);
+  }
+  function statAffluenza(c, s) {
+    if (affluenzaOltre(c, s, stato.tornata)) {
+      return '<div class="stat" title="' + testoOltre(s, stato.tornata) + '"><b>n.d.</b><span>affluenza</span></div>';
+    }
+    return stat(s.v === null ? "n.d." : pf(s.e ? 100 * s.v / s.e : null), "affluenza");
+  }
+  function notaOltre(c) {
+    var n = 0;
+    c.sez.forEach(function (s) { if (dentroFiltro(s) && affluenzaOltre(c, s, stato.tornata)) n++; });
+    if (!n) return "";
+    return (n === 1 ? "1 sezione ha votanti oltre gli iscritti: è grigia" : nf.format(n) + " sezioni hanno votanti oltre gli iscritti: sono grigie") +
+      " sulla mappa e n.d. nelle schede, " + (n === 1 ? "resta" : "restano") + " nel totale e nella mediana.";
+  }
   function misura(c, s, tid, m) {
     if (m === "affluenza") return affluenzaDi(c, s, tid);
     if (m.indexOf("area:") === 0) return quotaArea(c, s, tid, m.slice(5));
@@ -1650,6 +1680,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
      corrente. Il rango si conta dalla piu' alta, il percentile e' la quota di
      sezioni che stanno sotto. */
   function posizione(c, s) {
+    if (oltreInMisura(c, s)) return null;
     var v = valore(c, s);
     if (v === null) return null;
     var vals = scala(c).vals;
@@ -1878,7 +1909,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       if (s.bbox[2] < lon0 || s.bbox[0] > lon1 || s.bbox[3] < lat0 || s.bbox[1] > lat1) return;
       n++;
       tracciaAnelli(s.anelli);
-      var p = biv ? (dentroFiltro(s) ? biv.cls[s.i] : -1) : passo(valore(c, s), sc);
+      var p = biv ? (dentroFiltro(s) ? biv.cls[s.i] : -1) : passo(oltreInMisura(c, s) ? null : valore(c, s), sc);
       if (soloContorni) {
         ctx.lineWidth = 1.1; ctx.strokeStyle = p < 0 ? COL.ink3 : rampa[p]; ctx.stroke();
       } else {
@@ -2846,6 +2877,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       if (stato.metrica === "divario") testo = TESTO_DIVARIO;
       else if (orgAttivo()) testo = TESTO_ORG + notaScartiOrg(c);
       else if (terrAttivo()) testo = terrCitta(c).nota + " Fonte: " + terrInd(stato.metrica).m.fonte + ".";
+      else if (stato.metrica === "affluenza") testo = notaOltre(c);
     }
     nm.textContent = testo;
     nm.classList.toggle("nascosto", !testo);
@@ -3294,7 +3326,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var pos = posizione(c, s);
     var celle =
       stat(nElet(s.e), "iscritti") +
-      stat(s.v === null ? "n.d." : pf(s.e ? 100 * s.v / s.e : null), "affluenza");
+      statAffluenza(c, s);
     // con la metrica affluenza il valore della sezione e' gia' la cella qui sopra
     if (stato.biv) {
       celle += bivCelle(c, s);
@@ -4063,6 +4095,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     }).join("");
     var affl = "<tr><td>affluenza</td>" + c.tornate.map(function (t) {
       var v = affluenzaDi(c, s, t.id);
+      if (affluenzaOltre(c, s, t.id)) return '<td class="num" title="' + testoOltre(s, t.id) + '">n.d.</td>';
       return '<td class="num">' + (v === null ? "–" : v.toFixed(0)) + "</td>";
     }).join("") + "</tr>";
     var parziale = c.tornate.some(function (t) {
@@ -4103,7 +4136,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var lista = listaCorrente(), iL = lista ? c.liste.indexOf(lista) : -1;
     var celle = stat(nElet(s.e), "elettori") +
       stat(s.v === null ? "n.d." : nf.format(s.v), "votanti") +
-      stat(s.v === null ? "n.d." : pf(s.e ? 100 * s.v / s.e : null), "affluenza") +
+      statAffluenza(c, s) +
       stat(nf.format(s.w), "voti validi");
     // quinta casella: preferenze (voto organizzato), con il dettaglio nel suggerimento;
     // sesta: voti della lista colorata, solo se c'e' una lista attiva
@@ -4115,7 +4148,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var dt = terrDellaScheda(c);
     document.getElementById("scheda-sezione").innerHTML =
       '<div class="scheda-testa"><span class="scheda-num">Sezione ' + s.s + "</span>" +
-      '<span class="ris-cifra">' + (stato.biv ? bivTesto(c, s) : fmt(valore(c, s)) + " " + nomeMetrica().toLowerCase()) + "</span></div>" +
+      '<span class="ris-cifra"' + (oltreInMisura(c, s) ? ' title="' + testoOltre(s, stato.tornata) + '"' : "") + ">" +
+        (stato.biv ? bivTesto(c, s) : (oltreInMisura(c, s) ? "n.d." : fmt(valore(c, s))) + " " + nomeMetrica().toLowerCase()) + "</span></div>" +
       '<div class="scheda-zona">' + (zone.length ? zone.join(" \u00b7 ") : c.nome) + "</div>" +
       '<div class="stat-griglia">' + celle + "</div>" +
       rigaOrgLista(c, s) +
@@ -4372,7 +4406,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var zone2 = zoneDiSezione(c, s);
     var zona = zone2.length ? " · " + zone2[zone2.length - 1] : "";
     return '<div class="sug-titolo">Sezione ' + s.s + zona + "</div>" +
-      '<div class="sug-cifra">' + fmt(v) + "</div>" +
+      '<div class="sug-cifra">' + (oltreInMisura(c, s) ? "n.d." : fmt(v)) + "</div>" +
+      (oltreInMisura(c, s) ? '<div class="sug-riga"><span>affluenza non interpretabile: votanti oltre gli iscritti</span></div>' : "") +
       '<div class="sug-riga"><span>elettori</span><b>' + nElet(s.e) + "</b></div>" +
       '<div class="sug-riga"><span>votanti</span><b>' + nElet(s.v) + "</b></div>" +
       '<div class="sug-liste">' + righe + "</div>";
