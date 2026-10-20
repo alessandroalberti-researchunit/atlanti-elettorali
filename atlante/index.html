@@ -2877,7 +2877,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       if (stato.metrica === "divario") testo = TESTO_DIVARIO;
       else if (orgAttivo()) testo = TESTO_ORG + notaScartiOrg(c);
       else if (terrAttivo()) testo = terrCitta(c).nota + " Fonte: " + terrInd(stato.metrica).m.fonte + ".";
-      else if (stato.metrica === "affluenza") testo = notaOltre(c);
+      else if (stato.metrica === "affluenza" && !stato.biv) testo = notaOltre(c);
     }
     nm.textContent = testo;
     nm.classList.toggle("nascosto", !testo);
