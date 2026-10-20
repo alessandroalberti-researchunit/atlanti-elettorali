@@ -472,6 +472,10 @@ kbd {
 .scheda-testa .ris-cifra { text-align: right; }
 .scheda-zona { font-size: 11.5px; color: var(--ink-3); margin: 2px 0 12px; }
 .liste-sez { margin-top: 12px; }
+.liste-sez tr[data-l] { cursor: pointer; }
+.liste-sez tr[data-l]:hover, .liste-sez tr[data-l]:focus-visible { background: var(--accento-op); }
+.liste-sez tr[data-l]:focus-visible { outline: 2px solid var(--accento); outline-offset: -2px; }
+.liste-sez tr[data-l][aria-pressed="true"] td:first-child { box-shadow: inset 2px 0 0 var(--accento); }
 
 /* dove cade la sezione nella distribuzione della citta' */
 .posizione { margin-top: 12px; }
@@ -2428,16 +2432,20 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       }).map(function (l) { return { v: l, nome: ETICHETTE[l] || l, alias: abbrevia(l) + " " + l }; }),
       corrente: (!stato.candidato && c.liste.indexOf(stato.metrica) >= 0) ? stato.metrica : "",
       onScegli: function (v) {
-        // con il voto organizzato acceso, scegliere una lista lo riferisce a quella lista
-        var eraOrg = stato.metrica === "organizzato" || stato.org;
-        stato.metrica = v; stato.org = eraOrg;
-        stato.candidato = null;
-        ridisegnaTutto();
+        scegliLista(v);
         // il campo e' ricostruito da ridisegnaTutto: il fuoco torna li' per chi usa la tastiera
         var nuova = document.getElementById("lista-select");
         if (nuova) nuova.focus();
       }
     });
+  }
+  // colora la mappa con una lista: dal campo delle liste e dalla tabella dei voti della sezione.
+  // Con il voto organizzato acceso, scegliere una lista lo riferisce a quella lista.
+  function scegliLista(l) {
+    var eraOrg = stato.metrica === "organizzato" || stato.org;
+    stato.metrica = l; stato.org = eraOrg;
+    stato.candidato = null;
+    ridisegnaTutto();
   }
   // campo con ricerca: si scrive per filtrare le voci, oppure si apre l'elenco e si clicca
   function comboRicerca(el, cfg) {
@@ -2502,7 +2510,16 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     inp.value = nomeCorrente(); inp.dataset.valore = corrente;
     inp.addEventListener("click", function () { if (!aperto()) { apri(""); inp.select(); } });
     inp.addEventListener("input", function () { apri(inp.value); });
-    inp.addEventListener("blur", chiudi);
+    inp.addEventListener("blur", function () {
+      // se il fuoco passa per un clic altrove, si chiude dopo il rilascio: chiudere subito
+      // accorcerebbe la colonna e il clic cadrebbe su un altro elemento
+      if (document.querySelector(":active")) {
+        document.addEventListener("pointerup", function f() {
+          document.removeEventListener("pointerup", f, true);
+          setTimeout(function () { if (document.activeElement !== inp) chiudi(); }, 50);
+        }, true);
+      } else chiudi();
+    });
     inp.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && aperto()) { e.preventDefault(); e.stopPropagation(); chiudi(); return; }
       if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -4068,9 +4085,14 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var righe = c.liste.map(function (l, i) { return { l: l, n: s.l[i] || 0 }; })
       .sort(function (a, b) { return b.n - a.n; });
     var maxv = righe.length ? righe[0].n : 0;
+    // le liste si colorano con un clic sulla riga, tranne nel confronto e nel bivariato
+    var cliccabili = !stato.confronto && !stato.biv;
     var tab = "<thead><tr><th>lista</th><th>voti</th><th>%</th></tr></thead><tbody>" +
       righe.map(function (r) {
-        return "<tr><td>" + simboloHtml(r.l, 18) + abbrevia(r.l) +
+        return (cliccabili
+          ? '<tr data-l="' + r.l + '" tabindex="0" role="button" title="Colora la mappa con questa lista" aria-pressed="' +
+            String(!stato.candidato && stato.metrica === r.l) + '">'
+          : "<tr>") + "<td>" + simboloHtml(r.l, 18) + abbrevia(r.l) +
           '<div class="barra"><i style="width:' + (maxv ? r.n / maxv * 100 : 0) +
           "%;background:" + (TINTE[r.l] || COL.ink3) + '"></i></div></td>' +
           '<td class="num">' + nf.format(r.n) + "</td>" +
@@ -4117,6 +4139,23 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       '<div class="etichetta">Voti della sezione' + (t ? ", " + t.nome : "") + "</div>" +
       '<div class="liste-sez"><table>' + tab + "</table></div>" +
       traiettoria(c, s);
+    Array.prototype.forEach.call(document.querySelectorAll("#blocco-sezione-voti tr[data-l]"), function (tr) {
+      function vai() {
+        var l = tr.dataset.l;
+        if (!stato.candidato && stato.metrica === l) return;
+        scegliLista(l);
+        // la tabella e' ricostruita da ridisegnaTutto: il fuoco torna sulla stessa riga
+        Array.prototype.forEach.call(document.querySelectorAll("#blocco-sezione-voti tr[data-l]"), function (n) {
+          if (n.dataset.l === l) n.focus();
+        });
+      }
+      // al primo clic la scheda cresce (casella e riga della lista) e le righe scendono: il secondo
+      // clic di un doppio clic cadrebbe su un'altra lista
+      tr.addEventListener("click", function (e) { if (e.detail <= 1) vai(); });
+      tr.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); vai(); }
+      });
+    });
     document.getElementById("blocco-sezione-coda").innerHTML =
       pistaPosizione(c, s) +
       '<div class="scheda-azioni">' +
