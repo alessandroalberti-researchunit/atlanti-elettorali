@@ -628,10 +628,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   flex: 0 0 auto; font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
   font-variant-numeric: tabular-nums; color: var(--inchiostro);
 }
-.cand-quota {
-  flex: 0 0 auto; font-family: "IBM Plex Mono", monospace; font-size: 10px;
-  color: var(--ink-3); font-variant-numeric: tabular-nums; width: 4.5ch; text-align: right;
-}
 .cand .barra { margin-top: 5px; }
 .cand-ordine {
   flex: 0 0 auto; width: 2ch; text-align: right;
@@ -1477,7 +1473,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     municipio: 1,         // municipio corrente, per i prospetti municipali del 2021
     livello: 0,           // indice dentro campi_zona: per cosa aggrega la tabella Zone
     zona: null,           // {campo, valore} quando la mappa e' ristretta a una zona
-    candidato: null       // {lista, ord} quando la mappa colora un candidato
+    candidato: null,      // {lista, ord} quando la mappa colora un candidato
+    vistaCand: "assoluta" // con un candidato: "assoluta" (colore dal numero di preferenze) | "relativa" (preferenze ogni 100 voti di lista)
   };
   function resa() { return RESE[stato.resa] || RESE[RESA_APERTURA]; }
 
@@ -1552,6 +1549,19 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var lista = pr.liste[stato.candidato.lista];
     return (lista && lista[stato.candidato.ord]) || null;
   }
+  function vistaAss() { return !!stato.candidato && stato.vistaCand !== "relativa"; }
+  // preferenze del candidato attivo nella sezione (sempre in numero assoluto, qualunque sia il colore)
+  function prefSez(c, s) {
+    var cand = candidatoAttivo(c);
+    return cand ? mappaCandidato(c, cand)[s.i] : null;
+  }
+  function testoPref(n) { return nf.format(n) + (n === 1 ? " preferenza" : " preferenze"); }
+  function prefCifra(c, s) { return valore(c, s) === null ? "n.d." : nf.format(prefSez(c, s)); }
+  function totaleCand(c) {
+    var t = 0;
+    c.sez.forEach(function (s) { if (dentroFiltro(s)) t += prefSez(c, s) || 0; });
+    return t;
+  }
   // vettore preferenze per indice di sezione, costruito una volta per candidato
   function mappaCandidato(c, cand) {
     if (cand.mappa) return cand.mappa;
@@ -1605,6 +1615,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     if (stato.candidato) {
       var cand = candidatoAttivo(c);
       if (!cand) return null;
+      if (vistaAss()) return mappaCandidato(c, cand)[s.i];
       var i = c.liste.indexOf(cand.lista);
       // quota del candidato sui voti presi dalla sua lista in quella sezione
       if (i < 0 || !s.l[i]) return null;
@@ -1659,7 +1670,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var chiave = c.chiave + "|" + stato.tornata + "|" + stato.prospetto + "|" +
       stato.municipio + "|" + (stato.confronto || "") + "|" + (stato.metricaB || "") + "|" + stato.metrica + (stato.org ? "+org" : "") + "|" +
       (stato.zona ? stato.zona.campo + "=" + stato.zona.valore : "") + "|" +
-      (stato.candidato ? stato.candidato.lista + "#" + stato.candidato.ord : "");
+      (stato.candidato ? stato.candidato.lista + "#" + stato.candidato.ord + stato.vistaCand : "");
     if (cacheScala[chiave]) return cacheScala[chiave];
     var vals = [];
     c.sez.forEach(function (s) { var v = valore(c, s); if (v !== null) vals.push(v); });
@@ -1820,7 +1831,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     return [stato.vista, stato.citta ? stato.citta.chiave : "-", stato.metrica,
       stato.tornata, stato.prospetto, stato.municipio, stato.confronto || "", stato.metricaB || "", stato.org ? 1 : 0, bivChiave(),
       scuro ? 1 : 0, W, H, dpr, cam.lon, cam.y, cam.scala, stato.fondo, stato.resa,
-      stato.candidato ? stato.candidato.lista + "#" + stato.candidato.ord : "",
+      stato.candidato ? stato.candidato.lista + "#" + stato.candidato.ord + stato.vistaCand : "",
       stato.zona ? stato.zona.campo + "=" + stato.zona.valore : "",
       stato.vista === "atlante" ? stato.evidenziata : ""].join("|");
   }
@@ -2008,6 +2019,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     return (zero ? "" : v > 0 ? "+" : v < 0 ? "−" : "") + t + " pt";
   };
   function fmt(v, d) {
+    if (vistaAss()) return (v === null || v === undefined) ? "n.d." : nf.format(Math.round(v));
     if (terrAttivo() && !stato.candidato) return fmtNum(v, terrInd(stato.metrica).m);
     if (divergente()) return pp(v, d);
     // il voto organizzato e' un rapporto "ogni 100 voti" e puo' superare 100: niente segno %
@@ -2058,8 +2070,9 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     }
     if (stato.metrica === "divario") return "affluenza femminile meno maschile, in punti";
     if (stato.candidato) {
-      return "preferenze ogni 100 voti di " +
-        (ETICHETTE[stato.candidato.lista] || stato.candidato.lista);
+      return vistaAss() ? "preferenze ottenute, in numero assoluto"
+        : "preferenze ottenute, colore in proporzione ai voti di " +
+          (ETICHETTE[stato.candidato.lista] || stato.candidato.lista);
     }
     if (orgAttivo()) {
       return "preferenze ogni 100 voti di " +
@@ -2451,6 +2464,24 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     });
     menuListe(el, c);
     menuTerritorio(el, c);
+    if (stato.candidato) {
+      el.appendChild(separatore("visualizzazione del candidato"));
+      [["assoluta", "Assoluta", "colore dal numero di preferenze del candidato nella sezione"],
+       ["relativa", "Relativa", "colore dalle preferenze ogni 100 voti della lista nella sezione"]].forEach(function (m) {
+        var b = document.createElement("button");
+        b.className = "chip"; b.type = "button"; b.id = "vista-" + m[0];
+        b.textContent = m[1]; b.title = m[2];
+        b.setAttribute("aria-pressed", String(stato.vistaCand === m[0]));
+        b.addEventListener("click", function () {
+          if (stato.vistaCand === m[0]) return;
+          stato.vistaCand = m[0];
+          ridisegnaTutto();
+          var nuovo = document.getElementById("vista-" + m[0]);
+          if (nuovo) nuovo.focus();
+        });
+        el.appendChild(b);
+      });
+    }
   }
   // le liste della tornata in una tendina ordinata per voti: erano una ventina di chip
   function menuListe(el, c) {
@@ -2858,8 +2889,9 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     document.getElementById("rampa").innerHTML = rampa.map(function (col) {
       return '<i style="background:' + col + '"></i>';
     }).join("");
-    document.getElementById("rampa-scala").innerHTML =
-      "<span>" + fmt(sc.min) + "</span><span>" + fmt((sc.min + sc.max) / 2) + "</span><span>" + fmt(sc.max) + "</span>";
+    document.getElementById("rampa-scala").innerHTML = (stato.candidato && !vistaAss())
+      ? ["meno incisivo", "medio", "pi\u00f9 incisivo"].map(function (x) { return "<span>" + x + "</span>"; }).join("")
+      : "<span>" + fmt(sc.min) + "</span><span>" + fmt((sc.min + sc.max) / 2) + "</span><span>" + fmt(sc.max) + "</span>";
     // gli estremi sono percentili, non minimo e massimo: la legenda lo dice e dichiara il criterio
     var capt = sc.tipo === "simmetrica" ? ["\u2212estremo", "0", "+estremo"]
       : sc.tipo === "estremi" ? ["minimo", "punto medio", "massimo"]
@@ -3281,7 +3313,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       aggiornaRigaSezione();
       return;
     }
-    var vals = c.sez.map(function (s) { return valore(c, s); })
+    // con un candidato la mediana e' in preferenze, sulle stesse sezioni che hanno un valore
+    var vals = c.sez.map(function (s) { var v = valore(c, s); return (v !== null && stato.candidato) ? prefSez(c, s) : v; })
       .filter(function (v) { return v !== null; });
     vals.sort(function (a, b) { return a - b; });
     var med = vals.length ? vals[Math.floor(vals.length / 2)] : null;
@@ -3299,7 +3332,10 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       stat(nf.format(quante), stato.zona ? "sezioni nella zona" : "sezioni") +
       stat(haElettori ? nf.format(elettori) : "n.d.", "elettori");
     // quando la metrica e' l'affluenza, la quota aggregata **e'** l'affluenza: una cella sola
-    if (stato.metrica === "affluenza") {
+    if (stato.candidato) {
+      celle += stat(nf.format(totaleCand(c)), "preferenze di " + nomeMetrica() + ", " + dove);
+      if (affl !== null) celle += stat(pf(affl), "affluenza");
+    } else if (stato.metrica === "affluenza") {
       celle += stat(fmt(quota), "affluenza, " + dove);
     } else if (quota !== null) {
       celle += stat(fmt(quota), nomeMetrica() + ", " + dove);
@@ -3307,7 +3343,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     } else {
       celle += stat(pf(affl), "affluenza");
     }
-    celle += stat(fmt(med), "mediana per sezione");
+    celle += stat(stato.candidato ? (med === null ? "n.d." : nf.format(med)) : fmt(med),
+      stato.candidato ? "mediana delle preferenze per sezione" : "mediana per sezione");
     box.innerHTML = celle;
     aggiornaRigaSezione();
   }
@@ -3330,8 +3367,9 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     // con la metrica affluenza il valore della sezione e' gia' la cella qui sopra
     if (stato.biv) {
       celle += bivCelle(c, s);
-    } else if (stato.metrica !== "affluenza" || stato.confronto) {
-      celle += stat(fmt(valore(c, s)), nomeMetrica());
+    } else if (stato.metrica !== "affluenza" || stato.confronto || stato.candidato) {
+      celle += stato.candidato ? stat(prefCifra(c, s), "preferenze, " + nomeMetrica())
+        : stat(fmt(valore(c, s)), nomeMetrica());
     }
     if (pos) {
       celle += stat(nf.format(pos.rango) + "\u00aa", "su " + nf.format(pos.n) + " sezioni");
@@ -3592,7 +3630,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var righe = Object.keys(gruppi).map(function (k) {
       var g = gruppi[k];
       var val;
-      if (cand) val = g.l ? 100 * g.p / g.l : null;
+      if (cand) val = g.p;
       else if (gen) val = (g.eu && g.ed) ? 100 * g.vd / g.ed - 100 * g.vu / g.eu : null;
       else if (orgAttivo()) val = g.od ? 100 * g.op / g.od : null;
       else if (terrAttivo()) val = g.tn ? g.ts / g.tn : null;
@@ -3624,7 +3662,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         '<div class="barra"><i style="width:' + (max ? (terrAttivo() ? Math.max(0, r.val || 0) : Math.abs(r.val || 0)) / max * 100 : 0) +
         "%;background:" + (divergente() ? rampa[(r.val || 0) < 0 ? 1 : 5] : rampa[5]) + '"></i></div></td>' +
         '<td class="num">' + r.n + "</td>" +
-        '<td class="num">' + fmt(r.val) + "</td></tr>";
+        '<td class="num">' + (cand ? nf.format(r.val) : fmt(r.val)) + "</td></tr>";
     });
     document.getElementById("tabella-zone").innerHTML = html + "</tbody>";
   }
@@ -3670,7 +3708,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var b = document.createElement("button");
     b.className = "cand"; b.type = "button";
     b.title = cand.nome + ", " + (ETICHETTE[cand.lista] || cand.lista) +
-      ". Clic per colorare la mappa con la sua quota.";
+      ". Clic per colorare la mappa con le sue preferenze.";
     var attivo = stato.candidato && stato.candidato.lista === cand.lista &&
       stato.candidato.ord === cand.ord;
     b.setAttribute("aria-pressed", String(!!attivo));
@@ -3688,10 +3726,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var cifra = document.createElement("span");
     cifra.className = "cand-cifra"; cifra.textContent = nf.format(v.v);
     riga.appendChild(cifra);
-    var quota = document.createElement("span");
-    quota.className = "cand-quota";
-    quota.textContent = totale ? (100 * v.v / totale).toFixed(1).replace(".", ",") + "%" : "";
-    riga.appendChild(quota);
     b.appendChild(riga);
 
     var barra = document.createElement("div");
@@ -3703,6 +3737,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     b.appendChild(barra);
 
     b.addEventListener("click", function () {
+      if (!stato.candidato) stato.vistaCand = "assoluta";
       stato.candidato = attivo ? null : { lista: cand.lista, ord: cand.ord };
       costruisciMetriche(); aggiornaLegenda(); aggiornaZone(); aggiornaClassifica(); aggiornaTitolo();
       aggiornaStatCitta(); aggiornaSezioneFissata(); aggiornaBanner(); disegna();
@@ -3783,7 +3818,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       (zone.length ? ", " + zone.join(" · ") : "");
     var pezzi = [["ordine", ordine], ["num-sez", String(r.s.s)],
                  ["zona", zone.length ? zone[zone.length - 1] : ""],
-                 ["cifra", fmt(r.v)]];
+                 ["cifra", stato.candidato ? nf.format(prefSez(c, r.s)) : fmt(r.v)]];
     pezzi.forEach(function (q) {
       var e = document.createElement("span");
       e.className = q[0]; e.textContent = q[1];
@@ -4009,6 +4044,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     preparaCitta(c);
     if (stato.citta !== c) apriCitta(k);      // apriCitta azzera il candidato: prima lei
     stato.metrica = cd.lista;
+    if (!stato.candidato) stato.vistaCand = "assoluta";
     stato.candidato = { lista: cd.lista, ord: cd.ord };
     costruisciMetriche(); aggiornaLegenda(); aggiornaZone(); aggiornaClassifica(); aggiornaTitolo();
     aggiornaStatCitta(); aggiornaSezioneFissata(); aggiornaBanner(); disegna();
@@ -4149,7 +4185,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     document.getElementById("scheda-sezione").innerHTML =
       '<div class="scheda-testa"><span class="scheda-num">Sezione ' + s.s + "</span>" +
       '<span class="ris-cifra"' + (oltreInMisura(c, s) ? ' title="' + testoOltre(s, stato.tornata) + '"' : "") + ">" +
-        (stato.biv ? bivTesto(c, s) : (oltreInMisura(c, s) ? "n.d." : fmt(valore(c, s))) + " " + nomeMetrica().toLowerCase()) + "</span></div>" +
+        (stato.biv ? bivTesto(c, s) : stato.candidato ? (valore(c, s) === null ? "n.d." : testoPref(prefSez(c, s))) + ", " + nomeMetrica() : (oltreInMisura(c, s) ? "n.d." : fmt(valore(c, s))) + " " + nomeMetrica().toLowerCase()) + "</span></div>" +
       '<div class="scheda-zona">' + (zone.length ? zone.join(" \u00b7 ") : c.nome) + "</div>" +
       '<div class="stat-griglia">' + celle + "</div>" +
       rigaOrgLista(c, s) +
@@ -4406,7 +4442,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var zone2 = zoneDiSezione(c, s);
     var zona = zone2.length ? " · " + zone2[zone2.length - 1] : "";
     return '<div class="sug-titolo">Sezione ' + s.s + zona + "</div>" +
-      '<div class="sug-cifra">' + (oltreInMisura(c, s) ? "n.d." : fmt(v)) + "</div>" +
+      '<div class="sug-cifra">' + (oltreInMisura(c, s) ? "n.d." : stato.candidato ? prefCifra(c, s) : fmt(v)) + "</div>" +
+      (stato.candidato ? '<div class="sug-riga"><span>preferenze di ' + nomeMetrica() + "</span></div>" : "") +
       (oltreInMisura(c, s) ? '<div class="sug-riga"><span>affluenza non interpretabile: votanti oltre gli iscritti</span></div>' : "") +
       '<div class="sug-riga"><span>elettori</span><b>' + nElet(s.e) + "</b></div>" +
       '<div class="sug-riga"><span>votanti</span><b>' + nElet(s.v) + "</b></div>" +
