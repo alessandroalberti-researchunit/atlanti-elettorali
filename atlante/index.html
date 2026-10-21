@@ -29,6 +29,8 @@
   --terra:      #EDF1F2;
   --ombra:      0 1px 2px rgba(13,30,37,.06), 0 8px 24px rgba(13,30,37,.07);
   --anello-simbolo: rgba(13,30,37,.13);
+  --biv-nd:     #C9D0D3;
+  --biv-nd-tratto: #7F8D92;
   --r: 3px;
 }
 @media (prefers-color-scheme: dark) {
@@ -49,6 +51,8 @@
     --terra:      #16282F;
     --ombra:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
     --anello-simbolo: rgba(228,237,239,.18);
+    --biv-nd:     #2C3B41;
+    --biv-nd-tratto: #5F727A;
   }
 }
 :root[data-theme="dark"] {
@@ -68,6 +72,8 @@
   --terra:      #16282F;
   --ombra:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
   --anello-simbolo: rgba(228,237,239,.18);
+  --biv-nd:     #2C3B41;
+  --biv-nd-tratto: #5F727A;
 }
 
 * { box-sizing: border-box; }
@@ -639,6 +645,55 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   font-size: 10px; color: var(--ink-3);
 }
 
+/* legenda del confronto bivariato: sta sulla mappa, nel piede sopra la scala grafica, cosi'
+   si legge guardando la mappa e non copre i comandi (in alto e in basso a destra) */
+.legenda-mappa {
+  pointer-events: auto; margin-bottom: 8px; width: max-content; max-width: min(320px, calc(100vw - 96px));
+  max-height: 60vh; overflow: auto;
+  background: var(--pannello); border: 1px solid var(--filo); border-radius: var(--r);
+  box-shadow: var(--ombra); padding: 7px 10px 8px;
+  font-family: "IBM Plex Sans", system-ui, sans-serif; letter-spacing: normal; color: var(--inchiostro);
+}
+.lm-testa { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.lm-testa .etichetta { margin: 0; }
+.lm-piega {
+  border: 0; background: none; color: var(--ink-2); font: inherit; font-size: 11px;
+  cursor: pointer; padding: 2px 4px; border-radius: var(--r);
+}
+.lm-piega:hover { color: var(--inchiostro); }
+.lm-piega:focus-visible, .lm-cella:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
+.lm-griglia { display: grid; grid-template-columns: auto repeat(3, 50px); gap: 3px; align-items: center; margin-top: 7px; }
+.lm-asse { font-size: 11px; font-weight: 600; line-height: 1.3; }
+.lm-asse-y { grid-column: 1 / -1; margin-bottom: 2px; }
+.lm-asse-x { grid-column: 2 / -1; text-align: right; margin-top: 2px; }
+.lm-soglia {
+  font-family: "IBM Plex Mono", monospace; font-size: 10px; line-height: 1.25; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.lm-soglia b { display: block; font-family: "IBM Plex Sans", sans-serif; font-weight: 500; color: var(--ink-2); }
+.lm-soglia-y { text-align: right; padding-right: 5px; white-space: nowrap; }
+.lm-soglia-x { text-align: center; align-self: start; }
+.lm-cella { height: 32px; padding: 0; border: 1px solid var(--anello-simbolo); border-radius: 2px; cursor: pointer; }
+.lm-cella[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--pannello), 0 0 0 4px var(--inchiostro); }
+.lm-isolata .lm-cella[aria-pressed="false"] { opacity: .35; }
+.lm-nd { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 10.5px; color: var(--ink-2); }
+.lm-nd i {
+  flex: 0 0 auto; width: 18px; height: 12px; border-radius: 2px;
+  background: repeating-linear-gradient(135deg, var(--biv-nd-tratto) 0 1.4px, var(--biv-nd) 1.4px 4.2px);
+}
+.lm-piede { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 10.5px; color: var(--ink-2); }
+.lm-piede .bottone { padding: 2px 8px; font-size: 11px; box-shadow: none; white-space: nowrap; }
+.sug-tinta { display: inline-block; flex: 0 0 auto; width: 10px; height: 10px; border-radius: 2px; box-shadow: 0 0 0 1px var(--anello-simbolo); }
+@media (max-width: 700px) {
+  .legenda-mappa { padding: 5px 8px 6px; max-height: 34dvh; max-width: calc(100vw - 84px); }
+  .lm-griglia { grid-template-columns: auto repeat(3, 42px); gap: 2px; }
+  .lm-cella { height: 18px; }
+  .lm-soglia { font-size: 9px; }
+  .lm-asse { font-size: 10px; }
+  .lm-piede.lm-invito { display: none; }
+  .lm-nd { margin-top: 5px; }
+}
+
 .nascosto { display: none !important; }
 
 @media (max-width: 900px) {
@@ -942,6 +997,11 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     </aside>
     <div class="suggerimento" id="suggerimento" aria-hidden="true"></div>
     <div class="sopra piede">
+      <div class="legenda-mappa nascosto" id="legenda-mappa" role="group" aria-label="Legenda del confronto bivariato">
+        <div class="lm-testa"><span class="etichetta">Legenda, nove classi</span>
+          <button class="lm-piega" id="lm-piega" type="button" aria-expanded="true" aria-controls="lm-corpo">Riduci</button></div>
+        <div id="lm-corpo"></div>
+      </div>
       <span id="etichetta-scala"></span>
       <div class="scala-grafica"><i id="barra-scala"></i></div>
       <div class="credito-mappa nascosto" id="credito-mappa">Fondo <a
@@ -1470,6 +1530,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     metricaB: null,       // lista o "area:x" del secondo termine del confronto
     org: false,           // voto organizzato riferito alla lista scelta (metrica = la lista)
     biv: null,            // confronto bivariato {a:{t,m}, b:{t,m}}: almeno un lato e' un dato del territorio
+    bivClasse: null,      // con il bivariato: classe isolata dalla legenda (da 0 a 8) oppure null
     municipio: 1,         // municipio corrente, per i prospetti municipali del 2021
     livello: 0,           // indice dentro campi_zona: per cosa aggrega la tabella Zone
     zona: null,           // {campo, valore} quando la mappa e' ristretta a una zona
@@ -1821,7 +1882,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     COL = {
       mare: stile("--mare"), terra: stile("--terra"), filo: stile("--filo"),
       inchiostro: stile("--inchiostro"), ink2: stile("--ink-2"), ink3: stile("--ink-3"),
-      accento: stile("--accento"), carta: stile("--carta"), pannello: stile("--pannello")
+      accento: stile("--accento"), carta: stile("--carta"), pannello: stile("--pannello"),
+      bivNd: stile("--biv-nd"), bivNdTratto: stile("--biv-nd-tratto")
     };
   }
 
@@ -1829,7 +1891,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   // dentro una citta' e' solo un contorno, disegnato sopra la copia del tampone.
   function chiaveCache() {
     return [stato.vista, stato.citta ? stato.citta.chiave : "-", stato.metrica,
-      stato.tornata, stato.prospetto, stato.municipio, stato.confronto || "", stato.metricaB || "", stato.org ? 1 : 0, bivChiave(),
+      stato.tornata, stato.prospetto, stato.municipio, stato.confronto || "", stato.metricaB || "", stato.org ? 1 : 0, bivChiave() + (stato.biv && stato.bivClasse !== null ? "#" + stato.bivClasse : ""),
       scuro ? 1 : 0, W, H, dpr, cam.lon, cam.y, cam.scala, stato.fondo, stato.resa,
       stato.candidato ? stato.candidato.lista + "#" + stato.candidato.ord + stato.vistaCand : "",
       stato.zona ? stato.zona.campo + "=" + stato.zona.valore : "",
@@ -1920,7 +1982,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       if (s.bbox[2] < lon0 || s.bbox[0] > lon1 || s.bbox[3] < lat0 || s.bbox[1] > lat1) return;
       n++;
       tracciaAnelli(s.anelli);
-      var p = biv ? (dentroFiltro(s) ? biv.cls[s.i] : -1) : passo(oltreInMisura(c, s) ? null : valore(c, s), sc);
+      if (biv) { sezioneBiv(s, biv, r.alpha, soloContorni, filo); return; }
+      var p = passo(oltreInMisura(c, s) ? null : valore(c, s), sc);
       if (soloContorni) {
         ctx.lineWidth = 1.1; ctx.strokeStyle = p < 0 ? COL.ink3 : rampa[p]; ctx.stroke();
       } else {
@@ -2150,7 +2213,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       b.setAttribute("aria-pressed", String(stato.tornata === x.id));
       b.addEventListener("click", function () {
         if (stato.tornata === x.id) return;
-        stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null;
+        stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null; stato.bivClasse = null;
         stato.tornata = x.id; stato.prospetto = "liste"; stato.candidato = null;
         applicaTornata(c);
         if (!metricaValida()) stato.metrica = metricaDiApertura();
@@ -2169,7 +2232,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       b.setAttribute("aria-pressed", String(stato.prospetto === pr.id));
       b.addEventListener("click", function () {
         if (stato.prospetto === pr.id) return;
-        stato.prospetto = pr.id; stato.candidato = null; stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null;
+        stato.prospetto = pr.id; stato.candidato = null; stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null; stato.bivClasse = null;
         applicaTornata(c);
         stato.metrica = metricaDiApertura();
         ridisegnaTutto();
@@ -2208,7 +2271,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     document.getElementById("esci-confronto").classList.toggle("nascosto", !stato.confronto && !stato.biv);
     document.getElementById("nota-confronto").textContent = stato.biv
       ? (nomeLato(stato.biv.a.t, stato.biv.a.m) + " (asse orizzontale) e " +
-         nomeLato(stato.biv.b.t, stato.biv.b.m) + " (asse verticale). Le sezioni senza uno dei due dati restano grigie.")
+         nomeLato(stato.biv.b.t, stato.biv.b.m) + " (asse verticale). Le sezioni senza uno dei due dati sono tratteggiate.")
       : stato.confronto
       ? (nomeLato(stato.tornata, stato.metrica) + " meno " +
          nomeLato(stato.confronto, stato.metricaB || stato.metrica) +
@@ -2344,7 +2407,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     if (!la || !lb) return;
     var a = { t: valMC("mc-ta"), m: la }, b = { t: valMC("mc-tb"), m: lb };
     var terrA = la.indexOf("terr:") === 0, terrB = lb.indexOf("terr:") === 0;
-    stato.prospetto = "liste"; stato.candidato = null; stato.org = false;
+    stato.prospetto = "liste"; stato.candidato = null; stato.org = false; stato.bivClasse = null;
     if (!terrA && !terrB) {
       stato.tornata = a.t; stato.metrica = la; stato.confronto = b.t; stato.metricaB = lb; stato.biv = null;
     } else {
@@ -2359,7 +2422,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   }
   document.getElementById("apri-confronto").addEventListener("click", apriConfronto);
   document.getElementById("esci-confronto").addEventListener("click", function () {
-    stato.confronto = null; stato.metricaB = null; stato.biv = null;
+    stato.confronto = null; stato.metricaB = null; stato.biv = null; stato.bivClasse = null;
     ridisegnaTutto();
   });
   document.getElementById("mc-conferma").addEventListener("click", confermaConfronto);
@@ -3080,13 +3143,15 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
      Quando un lato del confronto e' un dato del territorio la differenza in punti non ha senso
      (unita' diverse). Ogni lato si divide in terzili sulle sezioni che hanno entrambi i dati, la
      mappa usa le nove combinazioni, e si calcolano le correlazioni fra le sezioni. */
-  var PALETTE_BIV = ["#E8E8E8", "#ACE4E4", "#5AC8C8", "#DFB0D6", "#A5ADD3", "#5698B9",
-                     "#BE64AC", "#8C62AA", "#3B4994"];       // indice = 3 * classe di y + classe di x
-  function paletteBiv() {                   // nel tema scuro la classe piu' bassa non deve sembrare "senza dato"
-    if (!scuro) return PALETTE_BIV;
-    var p = PALETTE_BIV.slice(); p[0] = "#BDBDBD";
-    return p;
-  }
+  // due varianti in prova, la scelta e' dell'utente (spec confronto-bivariato-leggibilita, Q3); stesse
+  // tinte nei due temi, il "senza dato" e' un tratteggio (trattoBiv). Indice = 3 * classe di y + classe di x
+  var VARIANTE_BIV = "A";
+  var PALETTE_BIV = {
+    A: ["#F5F5F5", "#A9C5F9", "#3198FA", "#F8C68A", "#BB9790", "#7B6B94", "#E89900", "#B16B2C", "#7C4037"],  // blu x, arancio y
+    B: ["#F5F5F5", "#94C9BC", "#009D86", "#EAC0FB", "#8E99C1", "#1E728B", "#DA88FF", "#7F68C5", "#03478E"]   // verde acqua x, viola y
+  };
+  var CLASSI3 = ["basso", "medio", "alto"];
+  function paletteBiv() { return PALETTE_BIV[VARIANTE_BIV] || PALETTE_BIV.A; }
   function bivChiave() {
     return stato.biv ? stato.biv.a.t + "/" + stato.biv.a.m + "/" + stato.biv.b.t + "/" + stato.biv.b.m : "";
   }
@@ -3123,6 +3188,29 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       return t.indicatori[indiceTerr(t, lato.m)].breve;
     }
     return nomeLato(lato.t, lato.m);
+  }
+  // nome corto di un lato, senza la tornata: "AVS", "Densit\u00e0"
+  function siglaLato(lato) {
+    if (lato.m.indexOf("terr:") === 0) return nomeLatoBreve(lato);
+    if (lato.m.indexOf("area:") === 0) { var a = AREE[lato.m.slice(5)] || {}; return a.sigla || a.nome || lato.m.slice(5); }
+    var n = lato.m;
+    serieDi(stato.citta, lato.t).forEach(function (x) { if (x.k === lato.m) n = x.breve || x.nome; });
+    return n;
+  }
+  // nome dell'asse in legenda: per una lista con la tornata, per il territorio con l'unita' se fmtNum non la scrive
+  function asseLato(lato) {
+    if (lato.m.indexOf("terr:") !== 0) return siglaLato(lato) + ", " + etichettaBreve(tornataDi(stato.citta, lato.t));
+    var t = terrCitta(stato.citta), u = t.indicatori[indiceTerr(t, lato.m)].unita;
+    return siglaLato(lato) + (u === "%" || u === "\u00b0C" ? "" : " (" + u + ")");
+  }
+  function testoClasse(k) {
+    var b = stato.biv;
+    return CLASSI3[k % 3] + " per " + siglaLato(b.a) + ", " + CLASSI3[Math.floor(k / 3)] + " per " + siglaLato(b.b);
+  }
+  function bivClasseTesto(c, s) {
+    var k = bivDati(c).cls[s.i];
+    if (k >= 0) return testoClasse(k) + " (terzili)";
+    return dentroFiltro(s) ? "sezione tratteggiata: manca uno dei due dati" : "fuori dalla zona scelta";
   }
   function fmtCorr(r) { return r === null ? "n.d." : r.toFixed(2).replace(".", ","); }
   function terzili(a) {
@@ -3180,31 +3268,120 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   }
   function bivTesto(c, s) {
     var b = stato.biv;
-    return fmtLato(valoreLato(c, s, b.a), b.a) + " e " + fmtLato(valoreLato(c, s, b.b), b.b);
+    return siglaLato(b.a) + " " + fmtLato(valoreLato(c, s, b.a), b.a) + " \u00b7 " +
+      siglaLato(b.b) + " " + fmtLato(valoreLato(c, s, b.b), b.b);
+  }
+  // suggerimento al cursore: i due valori con il loro nome e la classe, al posto della cifra unica
+  function sugBiv(c, s) {
+    var b = stato.biv, k = bivDati(c).cls[s.i];
+    var riga = function (l) {
+      return '<div class="sug-riga"><span>' + siglaLato(l) + "</span><b>" + fmtLato(valoreLato(c, s, l), l) + "</b></div>";
+    };
+    return '<div style="margin:4px 0 6px">' + riga(b.a) + riga(b.b) + '<div class="sug-riga"><span>' +
+      (k >= 0 ? '<i class="sug-tinta" style="background:' + paletteBiv()[k] + '"></i>' : "") + bivClasseTesto(c, s) +
+      "</span></div></div>";
+  }
+  // tratteggio delle sezioni senza uno dei due dati: si distingue da qualunque tinta piena
+  var trattoCache = {};
+  function trattoBiv() {
+    var k = (scuro ? "s" : "c") + COL.bivNd;
+    if (trattoCache[k]) return trattoCache[k];
+    var t = document.createElement("canvas"); t.width = t.height = 6;
+    var g = t.getContext("2d");
+    g.fillStyle = COL.bivNd; g.fillRect(0, 0, 6, 6);
+    g.strokeStyle = COL.bivNdTratto; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(0, 6); g.lineTo(6, 0); g.moveTo(-1, 1); g.lineTo(1, -1); g.moveTo(5, 7); g.lineTo(7, 5); g.stroke();
+    return (trattoCache[k] = ctx.createPattern(t, "repeat"));
+  }
+  // una sezione nel bivariato: classe piena, tratteggio se manca un dato, attenuata se se ne isola un'altra
+  function sezioneBiv(s, bd, alpha, soloContorni, filo) {
+    var p = dentroFiltro(s) ? bd.cls[s.i] : -2, k = stato.bivClasse, spenta = k !== null && p !== k;
+    if (soloContorni) {
+      ctx.globalAlpha = spenta ? .25 : 1; ctx.lineWidth = 1.1;
+      ctx.strokeStyle = (p < 0 || spenta) ? COL.ink3 : paletteBiv()[p]; ctx.stroke();
+      ctx.globalAlpha = 1;
+      return;
+    }
+    ctx.globalAlpha = spenta ? alpha / 3 : alpha;
+    ctx.fillStyle = (spenta || p === -2) ? COL.terra : p === -1 ? trattoBiv() : paletteBiv()[p];
+    ctx.fill("evenodd");
+    if (filo) { ctx.lineWidth = .5; ctx.strokeStyle = COL.mare; ctx.stroke(); }
+    if (k !== null && !spenta) { ctx.globalAlpha = .8; ctx.lineWidth = .8; ctx.strokeStyle = COL.inchiostro; ctx.stroke(); }
+    ctx.globalAlpha = alpha;
   }
   function legendaBiv(lb) {
     var b = stato.biv, c = stato.citta, bd = bivDati(c);
     document.getElementById("etichetta-legenda").textContent = "Confronto bivariato, terzili delle sezioni";
-    var celle = "";
-    for (var cy = 2; cy >= 0; cy--) {
-      for (var cx = 0; cx < 3; cx++) {
-        celle += '<i title="' + ["basso", "medio", "alto"][cx] + " in orizzontale, " + ["basso", "medio", "alto"][cy] +
-          ' in verticale" style="display:block;height:26px;background:' + paletteBiv()[3 * cy + cx] + '"></i>';
-      }
-    }
-    lb.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2px;width:100px;margin:6px 0 8px">' +
-      celle + '</div><p class="nota" style="margin:0">Orizzontale, da basso ad alto: <b>' + nomeLato(b.a.t, b.a.m) +
-      '</b><br>Verticale, da basso ad alto: <b>' + nomeLato(b.b.t, b.b.m) + '</b></p>';
+    // la griglia delle nove classi sta sulla mappa (legendaMappaBiv); qui restano i due lati per esteso
+    lb.innerHTML = '<p class="nota" style="margin:0">Orizzontale, da basso ad alto: <b>' + nomeLato(b.a.t, b.a.m) +
+      '</b><br>Verticale, da basso ad alto: <b>' + nomeLato(b.b.t, b.b.m) + "</b><br>Le nove classi, con le soglie, " +
+      "sono nella legenda sulla mappa, in basso a sinistra.</p>";
     var nm = document.getElementById("nota-metrica");
     nm.textContent = "Ogni lato è diviso in terzili sulle " + nf.format(bd.n) + " sezioni" + (stato.zona ? " della zona" : "") +
-      " che hanno entrambi i dati; le altre restano grigie. Il dato del territorio è della cella o dell'intorno, non della " +
-      "sezione. È una correlazione di territorio: non dice nulla sui singoli elettori." +
+      " che hanno entrambi i dati; le altre sono tratteggiate (nella resa a soli contorni, con il contorno grigio). Il dato del territorio è della cella o dell'intorno, non della " +
+      "sezione. È una correlazione di territorio: non dice nulla sui singoli elettori. Le soglie in legenda sono arrotondate: " +
+      "una sezione scritta come la soglia può stare nella classe superiore." +
       ((bd.tx[0] === bd.tx[1] || bd.ty[0] === bd.ty[1])
         ? " Alcune classi sono vuote o sbilanciate perché molte sezioni hanno lo stesso valore (per esempio zero)." : "");
     nm.classList.remove("nascosto");
   }
+  // legenda sulla mappa: griglia 3x3 con assi e soglie; ogni cella e' un pulsante che isola la sua classe
+  // con il layout impilato (fino a 900 px) o su schermi bassi (fino a 500 px) la legenda coprirebbe i comandi o mezza mappa:
+  // a ogni nuovo confronto parte ripiegata, con "Mostra"
+  var bivPiegata = false, bivPiegataPer = "";
+  function legendaMappaBiv() {
+    var box = document.getElementById("legenda-mappa"), corpo = document.getElementById("lm-corpo");
+    var su = !!stato.biv && stato.vista === "citta" && !!stato.citta;
+    box.classList.toggle("nascosto", !su);
+    if (!su) bivPiegataPer = "";
+    else if (bivPiegataPer !== bivChiave()) { bivPiegataPer = bivChiave(); bivPiegata = matchMedia("(max-width: 900px), (max-height: 500px)").matches; }
+    var pg = document.getElementById("lm-piega");
+    pg.setAttribute("aria-expanded", String(!bivPiegata)); pg.textContent = bivPiegata ? "Mostra" : "Riduci";
+    corpo.classList.toggle("nascosto", bivPiegata);
+    if (!su) { corpo.innerHTML = ""; return; }
+    var b = stato.biv, bd = bivDati(stato.citta), pal = paletteBiv(), sel = stato.bivClasse;
+    var conta = [0, 0, 0, 0, 0, 0, 0, 0, 0], i;
+    for (i = 0; i < bd.cls.length; i++) if (bd.cls[i] >= 0) conta[bd.cls[i]]++;
+    var sogl = function (t, lato, k) {
+      return k === 0 ? "fino a " + fmtLato(t[0], lato)
+        : k === 1 ? "da " + fmtLato(t[0], lato) + " a " + fmtLato(t[1], lato) : "oltre " + fmtLato(t[1], lato);
+    };
+    var sezioni = function (n) { return nf.format(n) + (n === 1 ? " sezione" : " sezioni"); };
+    var h = '<div class="lm-griglia' + (sel !== null ? " lm-isolata" : "") + '"><div class="lm-asse lm-asse-y">\u2191 ' +
+      asseLato(b.b) + "</div>";
+    for (var cy = 2; cy >= 0; cy--) {
+      h += '<div class="lm-soglia lm-soglia-y"><b>' + CLASSI3[cy] + "</b>" + sogl(bd.ty, b.b, cy) + "</div>";
+      for (var cx = 0; cx < 3; cx++) {
+        var k = 3 * cy + cx, nome = testoClasse(k) + ": " + sezioni(conta[k]);
+        h += '<button class="lm-cella" type="button" data-k="' + k + '" aria-pressed="' + String(sel === k) +
+          '" title="' + nome + '" aria-label="' + nome + '" style="background:' + pal[k] + '"></button>';
+      }
+    }
+    h += "<div></div>";
+    for (cx = 0; cx < 3; cx++) h += '<div class="lm-soglia lm-soglia-x"><b>' + CLASSI3[cx] + "</b>" + sogl(bd.tx, b.a, cx) + "</div>";
+    corpo.innerHTML = h + '<div class="lm-asse lm-asse-x">' + asseLato(b.a) + " \u2192</div></div>" +
+      '<div class="lm-nd"><i></i>manca uno dei due dati</div>' +
+      '<div class="lm-piede' + (sel === null ? " lm-invito" : "") + '"><span id="lm-stato">' + (sel === null ? "Clic su una classe per isolarla"
+        : "Evidenziate " + sezioni(conta[sel]) + " su " + nf.format(bd.n)) + "</span>" +
+      (sel === null ? "" : '<button class="bottone" id="lm-tutte" type="button">Tutte le classi</button>') + "</div>";
+  }
+  function scegliClasseBiv(k, fuoco) {
+    stato.bivClasse = (k === null || stato.bivClasse === k) ? null : k;
+    aggiornaBiv(); disegna();
+    var n = document.querySelector('#lm-corpo .lm-cella[data-k="' + fuoco + '"]');
+    if (n) n.focus();
+  }
+  document.getElementById("lm-corpo").addEventListener("click", function (e) {
+    var cella = e.target.closest(".lm-cella");
+    if (cella) { scegliClasseBiv(+cella.dataset.k, +cella.dataset.k); return; }
+    if (e.target.closest("#lm-tutte")) scegliClasseBiv(null, stato.bivClasse);
+  });
+  document.getElementById("lm-piega").addEventListener("click", function () {
+    bivPiegata = !bivPiegata; legendaMappaBiv();
+  });
   function aggiornaBiv() {
     var blocco = document.getElementById("blocco-biv");
+    legendaMappaBiv();
     if (!stato.biv || stato.vista !== "citta" || !stato.citta) { blocco.classList.add("nascosto"); return; }
     var c = stato.citta, b = stato.biv, bd = bivDati(c);
     blocco.classList.remove("nascosto");
@@ -3227,12 +3404,16 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     g.setLineDash([4, 5]); g.globalAlpha = .45;
     bd.tx.forEach(function (v) { g.beginPath(); g.moveTo(px(v), mt); g.lineTo(px(v), Hc - mb); g.stroke(); });
     bd.ty.forEach(function (v) { g.beginPath(); g.moveTo(ml, py(v)); g.lineTo(Wc - mr, py(v)); g.stroke(); });
-    g.setLineDash([]); g.globalAlpha = .85;
-    for (i = 0; i < c.sez.length; i++) {
-      if (!bd.ok[i]) continue;
+    g.setLineDash([]);
+    var sel = stato.bivClasse;
+    var punto = function (i) {
       g.fillStyle = paletteBiv()[bd.cls[i]];
       g.beginPath(); g.arc(px(bd.x[i]), py(bd.y[i]), 3.2, 0, 6.284); g.fill();
-    }
+    };
+    g.globalAlpha = .12;
+    if (sel !== null) for (i = 0; i < c.sez.length; i++) if (bd.ok[i] && bd.cls[i] !== sel) punto(i);
+    g.globalAlpha = .85;
+    for (i = 0; i < c.sez.length; i++) if (bd.ok[i] && (sel === null || bd.cls[i] === sel)) punto(i);
     g.globalAlpha = 1; g.fillStyle = COL.ink3; g.font = "19px sans-serif";
     g.textAlign = "left"; g.fillText(fmtLato(lx[0], b.a), ml, Hc - mb + 22);
     g.textAlign = "right"; g.fillText(fmtLato(lx[1], b.a), Wc - mr, Hc - mb + 22);
@@ -4048,7 +4229,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     preparaCitta(c);
     if (stato.citta !== c) apriCitta(k);      // apriCitta azzera il candidato: prima lei
     // il candidato vive in una tornata: se la mappa e' su un'altra ci si sposta, come dal selettore
-    stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null;
+    stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null; stato.bivClasse = null;
     if (stato.tornata !== cd.tornata) {
       stato.tornata = cd.tornata; stato.prospetto = "liste"; stato.candidato = null;
       applicaTornata(c);
@@ -4193,8 +4374,9 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var dt = terrDellaScheda(c);
     document.getElementById("scheda-sezione").innerHTML =
       '<div class="scheda-testa"><span class="scheda-num">Sezione ' + s.s + "</span>" +
-      '<span class="ris-cifra"' + (oltreInMisura(c, s) ? ' title="' + testoOltre(s, stato.tornata) + '"' : "") + ">" +
-        (stato.biv ? bivTesto(c, s) : stato.candidato ? (valore(c, s) === null ? "n.d." : testoPref(prefSez(c, s))) + ", " + nomeMetrica() : (oltreInMisura(c, s) ? "n.d." : fmt(valore(c, s))) + " " + nomeMetrica().toLowerCase()) + "</span></div>" +
+      '<span class="ris-cifra"' + (oltreInMisura(c, s) ? ' title="' + testoOltre(s, stato.tornata) + '"' : "") +
+        (stato.biv ? ' style="white-space:normal"' : "") + ">" +
+        (stato.biv ? bivTesto(c, s) + '<br><span class="nota">' + bivClasseTesto(c, s) + "</span>" : stato.candidato ? (valore(c, s) === null ? "n.d." : testoPref(prefSez(c, s))) + ", " + nomeMetrica() : (oltreInMisura(c, s) ? "n.d." : fmt(valore(c, s))) + " " + nomeMetrica().toLowerCase()) + "</span></div>" +
       '<div class="scheda-zona">' + (zone.length ? zone.join(" \u00b7 ") : c.nome) + "</div>" +
       '<div class="stat-griglia">' + celle + "</div>" +
       rigaOrgLista(c, s) +
@@ -4396,7 +4578,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     stato.vista = "citta"; stato.citta = c; stato.fissata = null; stato.evidenziata = null;
     stato.candidato = null;               // un candidato vale per la citta' in cui sta
     stato.livello = 0; stato.zona = null; // livello e filtro valgono per la citta' aperta
-    stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null;
+    stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null; stato.bivClasse = null;
     stato.prospetto = "liste"; stato.municipio = 1;
     // si apre sulle europee 2024, la tornata che tutte le citta' hanno (e le sole con il divario
     // di genere e il voto organizzato); se mancasse, sull'ultima
@@ -4459,7 +4641,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var zone2 = zoneDiSezione(c, s);
     var zona = zone2.length ? " · " + zone2[zone2.length - 1] : "";
     return '<div class="sug-titolo">Sezione ' + s.s + zona + "</div>" +
-      '<div class="sug-cifra">' + (oltreInMisura(c, s) ? "n.d." : stato.candidato ? prefCifra(c, s) : fmt(v)) + "</div>" +
+      (stato.biv ? sugBiv(c, s) : '<div class="sug-cifra">' + (oltreInMisura(c, s) ? "n.d." : stato.candidato ? prefCifra(c, s) : fmt(v)) + "</div>") +
       (stato.candidato ? '<div class="sug-riga"><span>preferenze di ' + nomeMetrica() + "</span></div>" : "") +
       (oltreInMisura(c, s) ? '<div class="sug-riga"><span>affluenza non interpretabile: votanti oltre gli iscritti</span></div>' : "") +
       '<div class="sug-riga"><span>elettori</span><b>' + nElet(s.e) + "</b></div>" +
