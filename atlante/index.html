@@ -3889,16 +3889,18 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     CHIAVI.forEach(function (k) {
       var c = CITTA[k];
       var voce = { nomeNorm: normalizza(c.nome), num: [], zonaTesto: [], zone: [], cand: [] };
-      // i candidati entrano nell'indice con nome e totale, senza decodificare le serie
-      var grezzo = (PREF.citta || {})[k];
-      if (grezzo) {
+      // i candidati entrano nell'indice con nome e totale, senza decodificare le serie;
+      // le preferenze stanno per tornata e poi per citta' (PREF[tornata][citta][lista])
+      Object.keys(PREF).forEach(function (tid) {
+        var grezzo = (PREF[tid] || {})[k];
+        if (!grezzo || !tornataDi(c, tid)) return;
         Object.keys(grezzo).forEach(function (l) {
           grezzo[l].forEach(function (r, ord) {
-            voce.cand.push({ lista: l, ord: ord, nome: r[0], tot: r[1],
+            voce.cand.push({ tornata: tid, lista: l, ord: ord, nome: r[0], tot: r[1],
                              norm: normalizza(r[0]) });
           });
         });
-      }
+      });
       var mappe = c.campi_zona.map(function () { return {}; });
       c.sez.forEach(function (s, idx) {
         voce.num.push(String(s.s));
@@ -3988,8 +3990,10 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
             return true;
           });
           if (ok && numTok.length) return;      // un numero nella query non e' un candidato
+          // a parita' di nome si sale la tornata che si sta guardando
+          var altra = (stato.tornata && cd.tornata !== stato.tornata) ? 0.3 : 0;
           if (ok) ris.push({ tipo: "candidato", chiave: k, cand: cd,
-                             punteggio: (pos === 0 ? 2.6 : 4.2) + bonus, ordine: -cd.tot });
+                             punteggio: (pos === 0 ? 2.6 : 4.2) + bonus + altra, ordine: -cd.tot });
         });
       });
       ambito.forEach(function (k) {
@@ -4043,11 +4047,16 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var c = CITTA[k];
     preparaCitta(c);
     if (stato.citta !== c) apriCitta(k);      // apriCitta azzera il candidato: prima lei
+    // il candidato vive in una tornata: se la mappa e' su un'altra ci si sposta, come dal selettore
+    stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null;
+    if (stato.tornata !== cd.tornata) {
+      stato.tornata = cd.tornata; stato.prospetto = "liste"; stato.candidato = null;
+      applicaTornata(c);
+    }
     stato.metrica = cd.lista;
     if (!stato.candidato) stato.vistaCand = "assoluta";
     stato.candidato = { lista: cd.lista, ord: cd.ord };
-    costruisciMetriche(); aggiornaLegenda(); aggiornaZone(); aggiornaClassifica(); aggiornaTitolo();
-    aggiornaStatCitta(); aggiornaSezioneFissata(); aggiornaBanner(); disegna();
+    ridisegnaTutto();
   }
   function vaiAZona(k, z) {
     var c = CITTA[k];
@@ -4270,6 +4279,13 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     risCorrenti = []; selRis = -1;
     inRic.setAttribute("aria-expanded", "false");
   }
+  // ETICHETTE vale per la tornata aperta: il candidato di un'altra tornata cerca il nome nella sua
+  function nomeListaTornata(c, tid, l) {
+    var t = tornataDi(c, tid), pr = t ? prospettoDi(t, "liste") : null;
+    var serie = pr ? serieDelProspetto(pr, stato.municipio) : [];
+    for (var i = 0; i < serie.length; i++) if (serie[i].k === l) return serie[i].nome;
+    return ETICHETTE[l] || l;
+  }
   function etichettaRisultato(r) {
     var c = CITTA[r.chiave];
     if (r.tipo === "citta") {
@@ -4280,7 +4296,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     }
     if (r.tipo === "candidato") {
       return { nome: r.cand.nome,
-        sotto: c.nome + " · " + (ETICHETTE[r.cand.lista] || r.cand.lista),
+        sotto: c.nome + " · " + etichettaBreve(tornataDi(c, r.cand.tornata)) + " · " +
+               nomeListaTornata(c, r.cand.tornata, r.cand.lista),
         cifra: nf.format(r.cand.tot) + " pref." };
     }
     if (r.tipo === "zona") {
