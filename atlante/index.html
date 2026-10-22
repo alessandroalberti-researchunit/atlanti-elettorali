@@ -99,6 +99,15 @@ button { font: inherit; color: inherit; }
 
 .guscio.senza-rail { grid-template-columns: minmax(0, 1fr); }
 .guscio.senza-rail .rail { display: none; }
+.testata { position: relative; }
+.guscio .tasto-rail { position: absolute; top: 12px; right: 12px; }
+.testata .occhiello { padding-right: 40px; }
+/* con la colonna nascosta resta un lembo sul bordo sinistro della mappa per riaprirla */
+.guscio .lembo-rail { display: none; position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 30;
+  width: 22px; height: 64px; padding: 0; align-items: center; justify-content: center;
+  border-radius: 0 var(--r) var(--r) 0; border-left: 0; background: var(--pannello); color: var(--inchiostro); box-shadow: var(--ombra); }
+.guscio .lembo-rail svg { width: 16px; height: 16px; display: block; }
+.guscio.senza-rail .lembo-rail { display: inline-flex; }
 
 /* ---------------------------------------------------------------- rail */
 .rail {
@@ -819,6 +828,9 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 <div class="guscio" id="guscio">
   <aside class="rail">
     <div class="testata">
+      <button class="bottone tasto-icona tasto-rail" id="nascondi-rail" type="button"
+              data-nome="Nascondi la colonna" aria-label="Nascondi la colonna"
+              aria-controls="guscio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.2" y="4.5" width="17.6" height="15" rx="2"></rect><path d="M9.5 4.5v15"></path></svg></button>
       <div class="occhiello">Quattro città, più tornate dal 2021</div>
       <h1 class="titolo">Atlante delle<br>sezioni elettorali</h1>
       <p class="sottotitolo" id="sottotitolo">
@@ -914,6 +926,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   <main class="palco" id="palco">
     <canvas id="tela"></canvas>
+    <button class="bottone lembo-rail" id="mostra-rail" type="button"
+            aria-label="Mostra la colonna" title="Mostra la colonna" aria-controls="guscio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7"></path></svg></button>
     <div class="sopra barra-alta">
       <div class="intestazione-mappa">
         <h2 id="titolo-mappa">Italia</h2>
@@ -935,9 +949,6 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
           <button class="bottone tasto-icona" id="apri-impostazioni" type="button"
                   data-nome="Impostazioni" aria-label="Impostazioni"
                   aria-expanded="false" aria-controls="impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3.3"></circle><path d="M18.3 14.3 L21.3 14 L21.3 10 L18.3 9.7 L18.1 9.2 L20 6.8 L17.2 4 L14.8 5.9 L14.3 5.7 L14 2.7 L10 2.7 L9.7 5.7 L9.2 5.9 L6.8 4 L4 6.8 L5.9 9.2 L5.7 9.7 L2.7 10 L2.7 14 L5.7 14.3 L5.9 14.8 L4 17.2 L6.8 20 L9.2 18.1 L9.7 18.3 L10 21.3 L14 21.3 L14.3 18.3 L14.8 18.1 L17.2 20 L20 17.2 L18.1 14.8 Z"></path></svg></button>
-          <button class="bottone tasto-icona" id="nascondi-rail" type="button"
-                  data-nome="Nascondi la colonna" aria-label="Nascondi la colonna"
-                  aria-pressed="false" aria-controls="guscio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.2" y="4.5" width="17.6" height="15" rx="2"></rect><path d="M9.5 4.5v15"></path></svg></button>
         </div>
         <select id="filtro-zona" class="tendina tendina-mappa nascosto"
                 aria-label="Restringi la mappa a una zona"
@@ -2855,12 +2866,12 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     apriImpostazioni(!pannelloAperto);
   });
   // nasconde o riapre la colonna di sinistra: la tela si rifa da sola (ResizeObserver sul palco)
-  document.getElementById("nascondi-rail").addEventListener("click", function () {
-    var nasc = document.getElementById("guscio").classList.toggle("senza-rail");
-    var nome = nasc ? "Mostra la colonna" : "Nascondi la colonna";
-    this.setAttribute("aria-pressed", String(nasc));
-    this.setAttribute("data-nome", nome); this.setAttribute("aria-label", nome);
-  });
+  function mostraRail(nasc) {
+    document.getElementById("guscio").classList.toggle("senza-rail", nasc);
+    document.getElementById(nasc ? "mostra-rail" : "nascondi-rail").focus();
+  }
+  document.getElementById("nascondi-rail").addEventListener("click", function () { mostraRail(true); });
+  document.getElementById("mostra-rail").addEventListener("click", function () { mostraRail(false); });
   document.getElementById("chiudi-impostazioni").addEventListener("click", function () {
     apriImpostazioni(false);
     document.getElementById("apri-impostazioni").focus();
