@@ -167,6 +167,25 @@ button { font: inherit; color: inherit; }
 .chip:hover { border-color: var(--ink-3); color: var(--inchiostro); }
 .chip[aria-pressed="true"] { background: var(--inchiostro); border-color: var(--inchiostro); color: var(--carta); }
 .chip:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
+/* interruttore a due posizioni: il cursore scorre sotto la voce scelta */
+.interruttori { display: grid; gap: 8px; }
+.interruttore {
+  position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 3px;
+  border: 1px solid var(--filo); border-radius: 999px; background: var(--pannello);
+}
+.interruttore::before {
+  content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px);
+  border-radius: 999px; background: var(--inchiostro); transition: transform .18s ease;
+}
+.interruttore[data-pos="1"]::before { transform: translateX(100%); }
+.interruttore button {
+  position: relative; z-index: 1; border: 0; background: none; border-radius: 999px;
+  padding: 5px 10px; font: inherit; font-size: 12px; cursor: pointer; color: var(--ink-2);
+}
+.interruttore button[aria-pressed="true"] { color: var(--carta); }
+.interruttore button:focus-visible { outline: 2px solid var(--accento); outline-offset: 1px; }
+@media (prefers-reduced-motion: reduce) { .interruttore::before { transition: none; } }
+#rail-citta.senza-mun > .sezione-rail:not(:first-child):not(#blocco-tornata) { display: none; }
 
 /* legenda */
 .rampa { display: flex; height: 12px; border-radius: 2px; overflow: hidden; border: 1px solid var(--filo); }
@@ -881,7 +900,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       <div class="sezione-rail nascosto" id="blocco-tornata">
         <div class="etichetta" id="etichetta-prospetto">Prospetto</div>
         <div class="scelta nascosto" id="scelta-prospetto"></div>
-        <div class="scelta nascosto" id="scelta-municipio" style="margin-top:8px"></div>
+        <div class="interruttori nascosto" id="interruttori"></div>
         <p class="nota nascosto" id="avviso-tornata"></p>
       </div>
       <div class="sezione-rail" id="blocco-colora">
@@ -1700,10 +1719,39 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var pr = prospettoCorrente(), d = s.t[stato.tornata];
     return !!(pr && pr.municipale && d && d.mu !== stato.municipio);
   }
+  /* Ambito municipale: un prospetto municipale e' attivo. Il municipio si sceglie sulla mappa o dal menu
+     di zona e coincide con il filtro di zona sul primo campo (il municipio): le sezioni degli altri
+     restano grigie e fuori da scala, classifica e conteggi come con ogni filtro. Finche' non c'e'
+     (stato.municipio null) si vedono solo i contorni. */
+  function ambitoMun() { var pr = prospettoCorrente(); return !!(pr && pr.municipale); }
+  function senzaMunicipio() { return ambitoMun() && stato.municipio === null; }
+  // municipio di una sezione che non e' quello scelto (in ambito municipale), altrimenti null
+  function muAltro(idx) {
+    if (!ambitoMun()) return null;
+    var d = stato.citta.sez[idx].t[stato.tornata];
+    return (d && d.mu && d.mu !== stato.municipio) ? d.mu : null;
+  }
+  // filtro di zona sul municipio, senza ridisegnare
+  function fissaMunicipio(c, mu) {
+    stato.municipio = mu; stato.candidato = null; stato.fissata = null;
+    stato.zona = mu === null ? null : { campo: c.campi_zona[0], valore: String(mu) };
+    stato.livello = (mu !== null && c.campi_zona.length > 1) ? 1 : 0;
+  }
+  function impostaMunicipio(mu) {
+    var c = stato.citta;
+    nascondiSuggerimento();
+    fissaMunicipio(c, mu);
+    stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null; stato.bivClasse = null;
+    applicaTornata(c);
+    stato.metrica = metricaDiApertura();
+    ridisegnaTutto();
+    vola(inquadraFiltro(), 700);
+  }
   function valore(c, s) {
     // fuori dalla zona scelta la sezione non ha un valore: resta grigia e sparisce
     // da scala, classifica e mediana, che passano tutte di qui
     if (!dentroFiltro(s)) return null;
+    if (senzaMunicipio()) return null;  // ambito municipale senza municipio scelto: solo i contorni
     if (stato.biv) return null;         // nel confronto bivariato il colore e' una classe, vedi bivDati
     // consiglieri municipali e voto organizzato valgono dentro il municipio scelto, fuori la sezione e' grigia
     if ((stato.candidato || orgAttivo()) && fuoriMunicipio(s)) return null;
@@ -2027,16 +2075,16 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       }
     });
     ctx.globalAlpha = 1;
-    // prospetti municipali: i confini dei municipi, quello scelto in evidenza
-    if (stato.prospetto === "mliste" || stato.prospetto === "mpres") {
+    // ambito municipale: senza municipio scelto i 15 contorni, scelto solo il suo, in evidenza
+    if (ambitoMun()) {
       ctx.lineJoin = "round";
       Object.keys(c.contorniMunDec || {}).forEach(function (mu) {
         var scelto = String(stato.municipio) === mu;
+        if (stato.municipio !== null && !scelto) return;
         tracciaAnelli(c.contorniMunDec[mu]);
-        ctx.lineWidth = scelto ? 3.4 : 1.8; ctx.strokeStyle = scelto ? COL.accento : COL.inchiostro;
-        ctx.globalAlpha = scelto ? 1 : .7; ctx.stroke();
+        ctx.lineWidth = scelto ? 3.4 : 2.2; ctx.strokeStyle = scelto ? COL.accento : COL.inchiostro;
+        ctx.stroke();
       });
-      ctx.globalAlpha = 1;
     }
     sezioniDisegnate = n;
     // le altre città restano come sagome tenui, per non perdere l'orientamento
@@ -2258,6 +2306,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       b.setAttribute("aria-pressed", String(stato.tornata === x.id));
       b.addEventListener("click", function () {
         if (stato.tornata === x.id) return;
+        // lasciando l'ambito municipale il filtro sul municipio non vale piu'
+        if (ambitoMun()) fissaMunicipio(c, null);
         stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null; stato.bivClasse = null;
         stato.tornata = x.id; stato.prospetto = "liste"; stato.candidato = null;
         applicaTornata(c);
@@ -2267,10 +2317,50 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       el.appendChild(b);
     });
 
+    /* Tornate con prospetti municipali (Roma 2021): al posto dei chip dei prospetti due interruttori,
+       Comunali | Municipali e, sotto, Consiglieri | Sindaco (o Presidente). Le altre tornate hanno i chip. */
+    var conMun = t.prospetti.some(function (p) { return p.municipale; });
+    // senza municipio scelto restano i soli comandi di tornata e prospetto (vedi .senza-mun)
+    document.getElementById("rail-citta").classList.toggle("senza-mun", senzaMunicipio());
+    var eli = document.getElementById("interruttori");
+    eli.innerHTML = "";
+    eli.classList.toggle("nascosto", !conMun);
     var elp = document.getElementById("scelta-prospetto");
     elp.innerHTML = "";
-    elp.classList.toggle("nascosto", t.prospetti.length < 2);
+    elp.classList.toggle("nascosto", t.prospetti.length < 2 || conMun);
+    if (conMun) {
+      var mun = ambitoMun(), consigl = stato.prospetto === "liste" || stato.prospetto === "mliste";
+      var voce = function (a, b, scelta, quando, titolo) {
+        var g = document.createElement("div");
+        g.className = "interruttore"; g.setAttribute("role", "group"); g.setAttribute("aria-label", titolo);
+        g.setAttribute("data-pos", String(scelta));
+        [a, b].forEach(function (nome, i) {
+          var bt = document.createElement("button");
+          bt.type = "button"; bt.textContent = nome; bt.setAttribute("aria-pressed", String(scelta === i));
+          bt.addEventListener("click", function () { if (scelta !== i) quando(i); });
+          g.appendChild(bt);
+        });
+        eli.appendChild(g);
+      };
+      var passa = function (pid) {
+        nascondiSuggerimento();
+        var cambiaAmbito = prospettoDi(t, pid).municipale !== mun;
+        stato.prospetto = pid; stato.candidato = null; stato.confronto = null; stato.metricaB = null;
+        stato.org = false; stato.biv = null; stato.bivClasse = null;
+        if (cambiaAmbito) { impostaMunicipio(null); return; }
+        applicaTornata(c);
+        stato.metrica = metricaDiApertura();
+        ridisegnaTutto();
+      };
+      voce("Comunali", "Municipali", mun ? 1 : 0, function (i) {
+        passa(i ? (consigl ? "mliste" : "mpres") : (consigl ? "liste" : "sindaco"));
+      }, "Ambito");
+      voce("Consiglieri", mun ? "Presidente" : "Sindaco", consigl ? 0 : 1, function (i) {
+        passa(mun ? (i ? "mpres" : "mliste") : (i ? "sindaco" : "liste"));
+      }, "Prospetto");
+    }
     t.prospetti.forEach(function (pr) {
+      if (conMun) return;
       var b = document.createElement("button");
       b.className = "chip"; b.type = "button"; b.textContent = pr.nome;
       b.title = pr.nome + ", quota su 100 " + pr.unita;
@@ -2281,37 +2371,15 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         applicaTornata(c);
         stato.metrica = metricaDiApertura();
         ridisegnaTutto();
-        if (pr.municipale) volaAlMunicipio(c);
       });
       elp.appendChild(b);
     });
 
-    var elm = document.getElementById("scelta-municipio");
-    var pr = prospettoCorrente();
-    elm.innerHTML = "";
-    elm.classList.toggle("nascosto", !pr.municipale);
-    if (pr.municipale) {
-      Object.keys(pr.serie_mun).map(Number).sort(function (a, b) { return a - b; })
-        .forEach(function (mu) {
-          var b = document.createElement("button");
-          b.className = "chip"; b.type = "button"; b.textContent = romanoN(mu);
-          b.title = "Municipio " + romanoN(mu);
-          b.setAttribute("aria-pressed", String(stato.municipio === mu));
-          b.addEventListener("click", function () {
-            if (stato.municipio === mu) return;
-            stato.municipio = mu; stato.candidato = null;
-            applicaTornata(c);
-            stato.metrica = metricaDiApertura();
-            ridisegnaTutto();
-            volaAlMunicipio(c);
-          });
-          elm.appendChild(b);
-        });
-    }
-
     var av = document.getElementById("avviso-tornata");
-    av.textContent = t.avviso || "";
-    av.classList.toggle("nascosto", !t.avviso);
+    var invito = senzaMunicipio() ? "Scegli un municipio: clic sulla mappa o dal menu in alto a destra." : "";
+    av.textContent = invito || t.avviso || "";
+    av.classList.toggle("nascosto", !av.textContent);
+    document.getElementById("blocco-tornata").classList.toggle("nascosto", t.prospetti.length < 2 && !av.textContent);
 
     // ---- confronto: il pulsante sta sul prospetto delle liste, la finestra sceglie i due lati
     document.getElementById("blocco-confronto").classList.toggle("nascosto", stato.prospetto !== "liste");
@@ -3097,8 +3165,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     "soglia: con pochi voti il rapporto è instabile, per questo banner e scheda riportano sempre " +
     "i numeri assoluti.";
   function orgDisponibile() {
-    return !!stato.citta && !stato.confronto && (stato.prospetto === "liste" || stato.prospetto === "mliste") &&
-      !!preparaPreferenze(stato.citta);
+    return !!stato.citta && !stato.confronto && !senzaMunicipio() &&
+      (stato.prospetto === "liste" || stato.prospetto === "mliste") && !!preparaPreferenze(stato.citta);
   }
   function orgAttivo() {
     return (stato.metrica === "organizzato" || stato.org) && orgDisponibile();
@@ -3537,7 +3605,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
 
   function aggiornaStatCitta() {
     var box = document.getElementById("stat-citta");
-    if (stato.vista !== "citta" || !stato.citta) {
+    if (stato.vista !== "citta" || !stato.citta || senzaMunicipio()) {
       box.classList.add("nascosto");
       document.getElementById("riga-sezione").classList.add("nascosto");
       return;
@@ -3651,6 +3719,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     tutta.value = ""; tutta.textContent = "Tutta la città, " + c.sez.length + " sezioni";
     sel.appendChild(tutta);
     c.campi_zona.forEach(function (campo, i) {
+      if (ambitoMun() && i > 0) return;      // in ambito municipale la tendina sceglie solo il municipio
       var valori = valoriZona(c, campo);
       if (!valori.length) return;
       var gruppo = document.createElement("optgroup");
@@ -3672,6 +3741,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
   document.getElementById("filtro-zona").addEventListener("change", function () {
     var c = stato.citta;
     if (!c) return;
+    if (ambitoMun()) { impostaMunicipio(this.value ? parseInt(this.value.split("|")[1], 10) : null); return; }
     if (!this.value) { applicaFiltroZona(null); return; }
     var taglio = this.value.indexOf("|");
     var i = parseInt(this.value.slice(0, taglio), 10);
@@ -3913,6 +3983,12 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
       return;
     }
     var c = stato.citta;
+    if (senzaMunicipio()) {
+      document.getElementById("titolo-mappa").textContent = c.nome + " · " + etichettaBreve(tornataCorrente()) + " · Municipali";
+      document.getElementById("didascalia-mappa").textContent =
+        "I " + Object.keys(c.contorni_municipi || {}).length + " municipi. Clic su un municipio per aprirlo.";
+      return;
+    }
     var quante = c.sez.length;
     if (stato.zona) {
       quante = 0;
@@ -3989,7 +4065,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var c = stato.vista === "citta" ? stato.citta : null;
     var sez = sezioneFissata();
     // il banner si apre solo dopo il clic su una sezione, e non restringe la mappa
-    var pr = (c && sez && !stato.confronto && !stato.biv) ? preparaPreferenze(c) : null;
+    var pr = (c && sez && !stato.confronto && !stato.biv && !senzaMunicipio()) ? preparaPreferenze(c) : null;
     banner.classList.toggle("nascosto", !pr);
     palco.classList.toggle("con-banner", !!pr);
     if (!pr) return;
@@ -4302,7 +4378,13 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     var c = CITTA[k];
     preparaCitta(c);
     var dest = inquadraSezione(c, idx);
-    if (stato.citta !== c) apriCitta(k, dest); else vola(dest, 700);
+    if (stato.citta !== c) apriCitta(k, dest);
+    else {
+      // in ambito municipale la sezione si apre nel suo municipio
+      var dm = ambitoMun() ? c.sez[idx].t[stato.tornata] : null;
+      if (dm && dm.mu && dm.mu !== stato.municipio) impostaMunicipio(dm.mu);
+      vola(dest, 700);
+    }
     stato.fissata = idx; stato.evidenziata = null;
     aggiornaSezioneFissata(); aggiornaRigaSezione(); aggiornaBanner();
     aggiornaClassifica(); disegna();
@@ -4316,15 +4398,17 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null; stato.bivClasse = null;
     var prospCand = cd.mun ? "mliste" : "liste";
     if (stato.tornata !== cd.tornata || stato.prospetto !== prospCand || (cd.mun && stato.municipio !== cd.mun)) {
+      var eraMun = ambitoMun();
       stato.tornata = cd.tornata; stato.prospetto = prospCand; stato.candidato = null;
-      if (cd.mun) stato.municipio = cd.mun;
+      // il municipio del candidato diventa il filtro di zona; passando ai comunali il filtro cade
+      if (cd.mun) fissaMunicipio(c, cd.mun); else if (eraMun) fissaMunicipio(c, null);
       applicaTornata(c);
     }
     stato.metrica = cd.lista;
     if (!stato.candidato) stato.vistaCand = "assoluta";
     stato.candidato = { lista: cd.lista, ord: cd.ord };
     ridisegnaTutto();
-    if (cd.mun) volaAlMunicipio(c);
+    vola(inquadraFiltro(), 700);
   }
   function vaiAZona(k, z) {
     var c = CITTA[k];
@@ -4342,7 +4426,8 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     stato.fissata = null; stato.evidenziata = null;
     // se la zona e' del campo piu' grosso, la si prende come filtro: cercare
     // "municipio 7" e vederlo solo inquadrato, con tutto il resto acceso, sarebbe meno
-    if (z.campo === c.campi_zona[0]) applicaFiltroZona({ campo: z.campo, valore: z.valore }, false);
+    if (z.campo === c.campi_zona[0] && ambitoMun()) impostaMunicipio(parseInt(z.valore, 10));
+    else if (z.campo === c.campi_zona[0]) applicaFiltroZona({ campo: z.campo, valore: z.valore }, false);
     else { aggiornaSezioneFissata(); aggiornaBanner(); disegna(); }
   }
 
@@ -4667,7 +4752,7 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     stato.candidato = null;               // un candidato vale per la citta' in cui sta
     stato.livello = 0; stato.zona = null; // livello e filtro valgono per la citta' aperta
     stato.confronto = null; stato.metricaB = null; stato.org = false; stato.biv = null; stato.bivClasse = null;
-    stato.prospetto = "liste"; stato.municipio = 1;
+    stato.prospetto = "liste"; stato.municipio = null;
     // si apre sulle europee 2024, la tornata che tutte le citta' hanno (e le sole con il divario
     // di genere e il voto organizzato); se mancasse, sull'ultima
     stato.tornata = (tornataDi(c, "europee2024") || c.tornate[c.tornate.length - 1]).id;
@@ -4768,6 +4853,14 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
     }
     var ll = inverso(x, y), idx = cercaSezione(ll[0], ll[1]);
     tela.classList.toggle("puntabile", idx !== null);
+    var ma = idx !== null ? muAltro(idx) : null;
+    if (ma) {
+      // una sezione di un altro municipio (o senza municipio scelto) non ha cifre: si offre il suo municipio
+      mostraSuggerimento(x, y, '<div class="sug-titolo">Municipio ' + romano(ma) + '</div>' +
+        '<div class="sug-liste"><div class="sug-riga"><span>clic per aprirlo</span></div></div>');
+      return;
+    }
+    if (senzaMunicipio()) { nascondiSuggerimento(); return; }
     if (idx !== stato.evidenziata) { stato.evidenziata = idx; chiediDisegno(); }
     if (idx !== null) mostraSuggerimento(x, y, contenutoSezione(stato.citta, idx));
     else nascondiSuggerimento();
@@ -4780,7 +4873,9 @@ input[type="range"] { margin: 0; accent-color: var(--accento); }
         if (k) apriCitta(k);
       } else {
         var ll = inverso(x, y), idx = cercaSezione(ll[0], ll[1]);
-        fissaSezione(idx);
+        var ma = idx !== null ? muAltro(idx) : null;
+        if (ma) impostaMunicipio(ma);
+        else if (!senzaMunicipio()) fissaSezione(idx);
       }
     }
     trascina = null; tela.classList.remove("trascina");
